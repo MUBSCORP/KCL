@@ -1,0 +1,71 @@
+$fontpath: '/src/assets/fonts/pretendard-gov/';
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 700;
+  font-display: swap;
+  src:
+    local('Pretendard GOV Bold'),
+    url($fontpath + 'woff2/PretendardGOV-Bold.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-Bold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 600;
+  font-display: swap;
+  src:
+    local('Pretendard GOV SemiBold'),
+    url($fontpath + 'woff2/PretendardGOV-SemiBold.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-SemiBold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 500;
+  font-display: swap;
+  src:
+    local('Pretendard GOV Medium'),
+    url($fontpath + 'woff2/PretendardGOV-Medium.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-Medium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local('Pretendard GOV Regular'),
+    url($fontpath + 'woff2/PretendardGOV-Regular.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-Regular.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 300;
+  font-display: swap;
+  src:
+    local('Pretendard GOV Light'),
+    url($fontpath + 'woff2/PretendardGOV-Light.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-Light.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 200;
+  font-display: swap;
+  src:
+    local('Pretendard GOV ExtraLight'),
+    url($fontpath + 'woff2/PretendardGOV-ExtraLight.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-ExtraLight.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard GOV';
+  font-weight: 100;
+  font-display: swap;
+  src:
+    local('Pretendard GOV Thin'),
+    url($fontpath + 'woff2/PretendardGOV-Thin.woff2') format('woff2'),
+    url($fontpath + 'woff/PretendardGOV-Thin.woff') format('woff');
+}

@@ -1,0 +1,276 @@
+.topState {
+  @include flexArea($gap: 1rem, $justify: space-between, $width: 100%);
+  padding: 2rem;
+  border-bottom: 1px solid var(--co-border);
+  background-color: var(--co-white);
+  > .left {
+    min-width: 68.1rem;
+    @include flexArea($gap: 4rem, $align: flex-start);
+    .chartCont {
+      .tit {
+        position: relative;
+        font-size: 1.6rem;
+        font-weight: 400;
+        padding-left: 1rem;
+        line-height: 1;
+        margin-bottom: 1.6rem;
+        &::before {
+          content: '';
+          position: absolute;
+          width: 0.4rem;
+          height: 1.2rem;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          border-radius: 10rem;
+          background-color: #666;
+        }
+      }
+      &.type2 {
+        .innerWrap {
+          @include flexArea($gap: 2rem);
+          .legend {
+            width: 8rem;
+            text-align: center;
+            > p {
+              font-size: 3rem;
+              font-weight: 700;
+            }
+            .btnWrap {
+              @include flexArea($gap: 0.4rem, $width: 100%, $direction: column);
+              .total {
+                @include flexArea($width: 100%);
+                height: 2.4rem;
+                background-color: #e7e7e7;
+                border-radius: 0.5rem;
+                font-size: 1.2rem;
+              }
+              .current {
+                @include flexArea($width: 100%);
+                height: 2.4rem;
+                color: var(--co-white);
+                font-weight: 600;
+                background-color: var(--co-green);
+                border-radius: 0.5rem;
+                font-size: 1.2rem;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  > .center {
+    flex: 1;
+    > .tit {
+      @include flexArea($justify: space-between);
+      margin-bottom: 1.2rem;
+      > span {
+        @include flexArea($gap: 0.8rem);
+        font-size: 1.6rem;
+        font-weight: 400;
+        i {
+          display: block;
+          width: 1.6rem;
+          height: 1.6rem;
+          font-weight: 400;
+          background: url(../../assets/images/icon/bell.png) no-repeat center/contain;
+        }
+      }
+      .customBtn {
+        font-size: 1.2rem;
+        color: var(--co-white);
+        height: 1.8rem;
+        padding: 0 1rem;
+        background-color: #777;
+        border-radius: 0.4rem;
+      }
+    }
+    .innerWrap {
+      @include flexArea($justify: space-between, $align: stretch, $gap: 1rem);
+      .listArea {
+        min-width: 23rem;
+        height: 9.7rem;
+        overflow: auto;
+        ul {
+          li {
+            @include flexArea;
+            + li {
+              margin-top: 0.4rem;
+            }
+            .customBtn {
+              position: relative;
+              justify-content: flex-start;
+              width: 100%;
+              padding: 0 3.7rem 0 4.2rem;
+              height: 4.5rem;
+              border: 1px solid var(--co-border);
+              border-radius: 0.4rem;
+              flex-direction: column;
+              align-items: flex-start;
+              justify-content: center;
+              .time {
+                font-size: 1.1rem;
+                color: #555;
+                margin-bottom: 0.3rem;
+              }
+              .desc {
+                font-size: 1.3rem;
+                font-weight: 500;
+              }
+              &::before {
+                content: '';
+                position: absolute;
+                width: 3rem;
+                height: 3rem;
+                left: 0.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+                background: #f6f6f6 url(../../assets/images/icon/info.png);
+                border-radius: 100%;
+                background-size: 2rem;
+                background-repeat: no-repeat;
+                background-position: center;
+              }
+              &::after {
+                content: '';
+                position: absolute;
+                width: 0.7rem;
+                height: 1.3rem;
+                right: 1rem;
+                top: 50%;
+                transform: translateY(-50%);
+                background: #f6f6f6 url(../../assets/images/icon/arrow_right2.png);
+                border-radius: 100%;
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+              }
+              &.warning {
+              }
+            }
+            &.warning {
+              .customBtn {
+                background-color: #fff7f1;
+                border-color: #ff6600;
+                &::before {
+                  content: '';
+                  background: #f6f6f6 url(../../assets/images/icon/warning.png);
+                  background-size: 2rem;
+                  background-repeat: no-repeat;
+                  background-position: center;
+                }
+                .desc {
+                  color: #ff6600;
+                }
+              }
+            }
+          }
+        }
+      }
+      .resultArea {
+        flex: 1;
+        .innerCont {
+          @include flexArea($justify: space-between, $align: flex-start, $gap: 0.6rem, $direction: column);
+          height: 9.7rem;
+          overflow: auto;
+          background-color: var(--co-white);
+          padding: 0.7rem 1rem;
+          border: 1px solid var(--co-border);
+          border-radius: 0.6rem;
+          .tit {
+            position: relative;
+            font-size: 1.4rem;
+            font-weight: 600;
+          }
+          .desc {
+            font-size: 1.2rem;
+            color: var(--co-gray);
+          }
+          .info {
+            @include flexArea($gap: 1rem);
+            line-height: 1;
+            dl {
+              @include flexArea($gap: 0.6rem);
+              dt {
+                background-color: #8c4747;
+                border-radius: 10rem;
+                padding: 0.3rem 0.6rem;
+                font-size: 1rem;
+                color: var(--co-white);
+              }
+              dd {
+                color: var(--co-grayDark);
+                font-size: 1rem;
+              }
+            }
+          }
+          &[data-state='fire'] {
+            .tit {
+              padding-left: 1.8rem;
+              color: var(--co-red);
+              &::before {
+                content: '';
+                position: absolute;
+                width: 1.4rem;
+                height: 1.4rem;
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                background: url(../../assets/images/icon/fire.png) no-repeat center/contain;
+              }
+            }
+            border-color: var(--co-red);
+            background-color: #fff8f8;
+          }
+        }
+      }
+    }
+  }
+  > .right {
+    min-width: 52rem;
+    @include flexArea;
+    .chartCont {
+      .tit {
+        position: relative;
+        font-size: 1.6rem;
+        font-weight: 400;
+        padding-left: 1rem;
+        line-height: 1;
+        margin-bottom: 1.6rem;
+        &::before {
+          content: '';
+          position: absolute;
+          width: 0.4rem;
+          height: 1.2rem;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          border-radius: 10rem;
+          background-color: #666;
+        }
+      }
+    }
+    .legend {
+      @include flexArea($gap: 1.4rem, $width: 5rem, $direction: column);
+      li {
+        @include flexArea($gap: 0.4rem, $width: 5rem, $direction: column);
+        position: relative;
+        font-size: 1rem;
+        color: var(--co-grayDark);
+        &::before {
+          content: '';
+          width: 1.2rem;
+          height: 1.2rem;
+          border-radius: 0.3rem;
+          background-color: #0082d2;
+        }
+        &.charge {
+          &::before {
+            background-color: #ff8400;
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+:root {
+  // size reset
+  font-size: 10px;
+
+  // breakpoint
+  --breakpoint: 768px;
+
+  // basic color
+  --co-body: #000;
+  --co-background: #f9f9f9;
+  --co-border: #ccc;
+  --co-dim: rgba(0, 0, 0, 0.6);
+
+  --co-primary: #5b9bd5;
+  --co-secondary: #ed7d31;
+  --co-tertiary: #c00000;
+
+  --co-black: #000;
+  --co-white: #fff;
+  --co-gray: #666;
+  --co-grayDark: #333;
+  --co-grayLight: #f1f1f1;
+
+  --co-red: #ff0000;
+  --co-green: #86a315;
+
+  // project added
+  --state-charge: #ffd1cc;
+  --state-rest: #cce5f4;
+  --state-discharge: #fff5cc;
+  --state-iso: #e6ffcc;
+  --state-pattern: #e6d5ed;
+  --state-balance: #76f589;
+  --state-chargemap: #ffdcec;
+
+  --state-ongoing: #45d141;
+  --state-stop: #e93935;
+  --state-completion: #fdbc20;
+  --state-available: #22b1f5;
+}

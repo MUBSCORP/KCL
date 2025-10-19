@@ -1,0 +1,97 @@
+header {
+  .innerWrap {
+    @include flexArea($justify: space-between, $gap: 2rem);
+    position: relative;
+    height: 6rem;
+    color: var(--co-white);
+    background-color: #163072;
+    padding: 0 2rem;
+    .logoArea {
+      @include flexArea($gap: 2rem, $width: 43.8rem, $justify: flex-start);
+      .logo {
+        .customBtn {
+          img {
+            width: auto;
+            height: 3.6rem;
+          }
+        }
+      }
+      .watch {
+        @include flexArea($justify: space-between, $gap: 1rem);
+        font-size: 1.8rem;
+        font-weight: 700;
+        .date {
+        }
+        .week {
+          @include flexArea;
+          width: 2rem;
+          height: 2rem;
+          font-size: 1.4rem;
+          background-color: var(--co-green);
+          border-radius: 100%;
+        }
+        .time {
+        }
+      }
+    }
+    .tabArea {
+      @include flexArea($align: flex-end);
+      flex: 1;
+      height: 100%;
+      ul {
+        @include flexArea($gap: 0.3rem, $width: 100%);
+        li {
+          flex: 1;
+          max-width: 16rem;
+          .customBtn {
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: var(--co-white);
+            height: 4.6rem;
+            padding: 0 0.4rem;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 0.6rem 0.6rem 0 0;
+            width: 100%;
+            word-break: keep-all;
+            @include trans;
+            &.isActive {
+              color: var(--co-black);
+              background-color: var(--co-white);
+            }
+          }
+        }
+      }
+    }
+    .utilArea {
+      @include flexArea($gap: 1.6rem);
+      font-size: 1.4rem;
+      font-weight: 500;
+      .user {
+        strong {
+        }
+      }
+      .position {
+        @include flexArea($gap: 1rem);
+        color: var(--co-green);
+        font-weight: 500;
+        span {
+          @include flexArea;
+          height: 2.4rem;
+          padding: 0 1rem;
+          border-radius: 10rem;
+          color: var(--co-white);
+          background-color: var(--co-green);
+        }
+      }
+      .customBtn {
+        font-size: 1.2rem;
+        height: 2.4rem;
+        padding: 0 1rem;
+        font-weight: 500;
+        color: var(--co-grayDark);
+        background-color: var(--co-white);
+        border-radius: 10rem;
+      }
+    }
+  }
+}

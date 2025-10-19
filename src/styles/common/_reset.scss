@@ -1,0 +1,219 @@
+//RESET
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  vertical-align: baseline;
+  box-sizing: border-box;
+}
+dl,
+ul,
+ol,
+menu,
+li {
+  list-style: none;
+}
+fieldset,
+img {
+  border: 0 none;
+  box-sizing: border-box;
+}
+input,
+select,
+textarea,
+button {
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+button {
+  border: 0 none;
+  background-color: transparent;
+  cursor: pointer;
+  box-sizing: border-box;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+address,
+caption,
+cite,
+code,
+dfn,
+em,
+var {
+  font-style: normal;
+  box-sizing: border-box;
+}
+::before,
+::after,
+:before,
+:after {
+  box-sizing: border-box;
+}
+input,
+textarea,
+img {
+  max-width: 100%;
+}
+a,
+a:hover,
+a:visited,
+a:active {
+  text-decoration: none;
+  color: inherit;
+}
+sup {
+  font-size: small;
+  vertical-align: text-top;
+}
+sub {
+  font-size: small;
+  vertical-align: text-bottom;
+}
+button,
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -ms-appearance: none;
+  appearance: none;
+}
+select {
+  background-color: #fff;
+}
+select::-ms-expand {
+  display: none;
+} /* Hide Native Arrow IE 10, 11 */
+table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+table caption {
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip: rect(1px, 1px, 1px, 1px);
+}
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
+}
+section,
+main {
+  display: block;
+}
+img {
+  vertical-align: top;
+}
+strong {
+  font-weight: 700;
+}
+button {
+  color: inherit;
+}
+em {
+  font-style: normal;
+}
+
+body {
+  color: var(--co-body);
+  background-color: var(--co-background);
+  font-size: 1.4rem;
+  line-height: 1.4;
+  font-family: 'Pretendard GOV', sans-serif;
+}

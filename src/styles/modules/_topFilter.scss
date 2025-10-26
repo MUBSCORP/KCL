@@ -1,0 +1,168 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
+.topFilter {
+  @include flexArea($align: center, $justify: space-between);
+  min-width: var(--min-width);
+  padding: 1.5rem 3rem;
+  > .left {
+    @include flexArea($align: center, $justify: flex-start, $gap: 5.2rem);
+    .compTit {
+      @include flexArea($align: center, $gap: 0.6rem);
+      font-size: 2.4rem;
+      font-weight: 600;
+      white-space: nowrap;
+      img {
+        width: 2.4rem;
+        height: 2.4rem;
+      }
+    }
+    .searchArea {
+      @include flexArea($align: center, $justify: flex-start, $gap: 2rem);
+      .schInput {
+        @include flexArea;
+        min-width: 23.2rem;
+        position: relative;
+        border-radius: 0;
+        box-shadow: none;
+        input {
+          height: 3rem;
+          padding: 0 3rem 0 1rem;
+          font-size: 1.4rem;
+          border: 1px solid var(--co-border);
+          border-radius: 0.6rem 0 0 0.6rem;
+        }
+        .btnClear {
+          position: absolute;
+          right: 4rem;
+          width: 1.6rem;
+          height: 1.6rem;
+          border-radius: 50%;
+          background-color: var(--co-grayLight);
+          svg {
+            width: 1.2rem;
+            height: 1.2rem;
+          }
+        }
+        .btnSch {
+          height: 3rem;
+          padding: 0 1rem;
+          font-size: 1.4rem;
+          background-color: #666;
+          border-radius: 0 0.6rem 0.6rem 0;
+          img {
+            width: 1.6rem;
+            height: 1.6rem;
+          }
+        }
+      }
+      .schResult {
+        @include flexArea($gap: 0.6rem);
+        dt {
+          font-size: 1.4rem;
+          white-space: nowrap;
+        }
+        dd {
+          @include flexArea($gap: 0.6rem, $wrap: wrap, $justify: flex-start);
+          .chip {
+            @include flexArea($gap: 0.6rem);
+            font-size: 1.4rem;
+            height: 2.6rem;
+            background-color: var(--co-white);
+            padding: 0 1.2rem;
+            border: 1px solid #ccc;
+            border-radius: 10rem;
+            .MuiChip-deleteIcon {
+              width: 1.4rem;
+              height: 1.4rem;
+              margin: auto;
+            }
+          }
+        }
+      }
+    }
+  }
+  > .right {
+    @include flexArea($gap: 3rem);
+    .colorChip {
+      @include flexArea($gap: 1rem, $justify: flex-end);
+      li {
+        @include flexArea;
+        padding: 0 1rem;
+        border-radius: 10rem;
+        height: 2.2rem;
+        line-height: 1;
+        font-size: 1.2rem;
+        &.charge {
+          background-color: var(--state-charge);
+        }
+        &.rest {
+          background-color: var(--state-rest);
+        }
+        &.discharge {
+          background-color: var(--state-discharge);
+        }
+        &.rest-iso {
+          background-color: var(--state-rest-iso);
+        }
+        &.pattern {
+          background-color: var(--state-pattern);
+        }
+        &.balance {
+          background-color: var(--state-balance);
+        }
+        &.chargemap {
+          background-color: var(--state-chargemap);
+        }
+      }
+      &.type2 {
+        gap: 1.6rem;
+        li {
+          padding: 0;
+          white-space: nowrap;
+          &:before {
+            content: '';
+            min-width: 1.4rem;
+            width: 1.4rem;
+            height: 1.4rem;
+            margin-right: 0.6rem;
+            background-color: var(--co-grayDark);
+            border-radius: 50%;
+          }
+          &.ongoing {
+            &:before {
+              background-color: var(--state-ongoing);
+            }
+          }
+          &.stop {
+            &:before {
+              background-color: var(--state-stop);
+            }
+          }
+          &.completion {
+            &:before {
+              background-color: var(--state-completion);
+            }
+          }
+          &.available {
+            &:before {
+              background-color: var(--state-available);
+            }
+          }
+        }
+        + .btnReset {
+          gap: 0.6rem;
+          color: var(--co-white);
+          height: 3.6rem;
+          font-size: 1.8rem;
+          font-weight: 600;
+          padding: 0 2rem;
+          background-color: #009dff;
+          border: 1px solid #006fb4;
+          border-radius: 0.6rem;
+          box-shadow: 0 0.4rem 0.4rem rgba(0, 0, 0, 0.25);
+        }
+      }
+    }
+  }
+}

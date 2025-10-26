@@ -1,11 +1,11 @@
 'use client';
 
-import ChartRunning from '@/app/uiux/components/modules/ChartRunning';
-import ChartState from '@/app/uiux/components/modules/ChartState';
-import ChartOperation from '@/app/uiux/components/modules/ChartOperation';
-import ChartToday from '@/app/uiux/components/modules/ChartToday';
-import ChartMonth from '@/app/uiux/components/modules/ChartMonth';
-import TopStateCenter from '@/app/uiux/components/modules/TopStateCenter';
+import ChartRunning from '@/app/uiux/components/modules/topState//ChartRunning';
+import ChartState from '@/app/uiux/components/modules/topState//ChartState';
+import ChartOperation from '@/app/uiux/components/modules/topState//ChartOperation';
+import ChartToday from '@/app/uiux/components/modules/topState//ChartToday';
+import ChartMonth from '@/app/uiux/components/modules/topState//ChartMonth';
+import TopStateCenter from '@/app/uiux/components/modules/topState//TopStateCenter';
 
 export default function DashboardPack() {
   const chartData = { total: 20, running: 15 };

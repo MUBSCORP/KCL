@@ -1,3 +1,6 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
 // next, mui overriding
 button {
   min-width: auto;

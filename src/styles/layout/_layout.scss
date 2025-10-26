@@ -1,0 +1,10 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
+body {
+  color: var(--co-body);
+  background-color: var(--co-background);
+  font-size: 1.4rem;
+  line-height: 1.5;
+  font-family: 'Pretendard GOV', sans-serif;
+}

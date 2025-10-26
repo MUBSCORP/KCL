@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
@@ -7,12 +9,14 @@ const nextConfig: NextConfig = {
       // 필요 시 다른 백엔드 API도 추가
     ];
   },
+
   // scss source map
-  // reactStrictMode: true,
-  // sassOptions: {
-  //   sourceMap: true,
-  // },
-  // productionBrowserSourceMaps: true,
+  reactStrictMode: true,
+  productionBrowserSourceMaps: true,
+  sassOptions: {
+    sourceMap: true,
+    includePaths: [path.join(__dirname, 'src/styles')],
+  },
 };
 
 export default nextConfig;

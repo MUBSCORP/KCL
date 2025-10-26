@@ -1,8 +1,15 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
 .topState {
-  @include flexArea($gap: 1rem, $justify: space-between, $width: 100%);
+  @include flexArea($gap: 1rem, $justify: space-between, $width: calc(100% - 2rem));
+  min-width: var(--min-width);
   padding: 2rem;
-  border-bottom: 1px solid var(--co-border);
+  margin: 0 1rem;
+  border: 1px solid var(--co-border);
+  border-radius: 1rem;
   background-color: var(--co-white);
+  box-shadow: 0 0.3rem 0.6rem rgba(0, 0, 0, 0.15);
   > .left {
     min-width: 68.1rem;
     @include flexArea($gap: 4rem, $align: flex-start);
@@ -12,7 +19,7 @@
         font-size: 1.6rem;
         font-weight: 400;
         padding-left: 1rem;
-        line-height: 1;
+        // line-height: 1;
         margin-bottom: 1.6rem;
         &::before {
           content: '';
@@ -20,8 +27,7 @@
           width: 0.4rem;
           height: 1.2rem;
           left: 0;
-          top: 50%;
-          transform: translateY(-50%);
+          top: 0.4rem;
           border-radius: 10rem;
           background-color: #666;
         }
@@ -146,8 +152,6 @@
                 background-repeat: no-repeat;
                 background-position: center;
               }
-              &.warning {
-              }
             }
             &.warning {
               .customBtn {
@@ -162,6 +166,17 @@
                 }
                 .desc {
                   color: #ff6600;
+                }
+              }
+            }
+            &.danger {
+              .customBtn {
+                &::before {
+                  content: '';
+                  background: #f6f6f6 url(../../assets/images/icon/danger.png);
+                  background-size: 2rem;
+                  background-repeat: no-repeat;
+                  background-position: center;
                 }
               }
             }
@@ -188,16 +203,18 @@
             color: var(--co-gray);
           }
           .info {
-            @include flexArea($gap: 1rem);
+            @include flexArea($gap: 1rem, $wrap: wrap, $justify: flex-start);
             line-height: 1;
             dl {
               @include flexArea($gap: 0.6rem);
+
               dt {
                 background-color: #8c4747;
                 border-radius: 10rem;
                 padding: 0.3rem 0.6rem;
                 font-size: 1rem;
                 color: var(--co-white);
+                white-space: nowrap;
               }
               dd {
                 color: var(--co-grayDark);

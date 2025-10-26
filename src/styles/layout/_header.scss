@@ -1,13 +1,18 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
 header {
+  min-width: var(--min-width);
   .innerWrap {
-    @include flexArea($justify: space-between, $gap: 2rem);
+    @include flexArea($justify: space-between, $gap: 6rem);
     position: relative;
-    height: 6rem;
+    height: 7rem;
     color: var(--co-white);
-    background-color: #163072;
+    background-color: var(--co-white);
     padding: 0 2rem;
     .logoArea {
-      @include flexArea($gap: 2rem, $width: 43.8rem, $justify: flex-start);
+      @include flexArea($gap: 2rem, $justify: flex-start);
+      min-width: 19.2rem;
       .logo {
         .customBtn {
           img {
@@ -16,81 +21,105 @@ header {
           }
         }
       }
-      .watch {
-        @include flexArea($justify: space-between, $gap: 1rem);
-        font-size: 1.8rem;
-        font-weight: 700;
-        .date {
-        }
-        .week {
-          @include flexArea;
-          width: 2rem;
-          height: 2rem;
-          font-size: 1.4rem;
-          background-color: var(--co-green);
-          border-radius: 100%;
-        }
-        .time {
-        }
-      }
     }
     .tabArea {
-      @include flexArea($align: flex-end);
+      @include flexArea;
       flex: 1;
+      width: 100%;
       height: 100%;
       ul {
-        @include flexArea($gap: 0.3rem, $width: 100%);
+        @include flexArea($gap: 0, $width: 100%, $justify: flex-start);
         li {
-          flex: 1;
-          max-width: 16rem;
+          // width: 8rem;
           .customBtn {
             font-size: 1.6rem;
             font-weight: 500;
-            color: var(--co-white);
-            height: 4.6rem;
-            padding: 0 0.4rem;
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 0.6rem 0.6rem 0 0;
+            color: #555;
+            height: 3.2rem;
+            padding: 0 2rem;
+            background-color: var(--co-white);
+            border-radius: 10rem;
             width: 100%;
             word-break: keep-all;
             @include trans;
+            span:not([class^='MuiTouchRipple']) {
+              @include ell;
+            }
             &.isActive {
-              color: var(--co-black);
-              background-color: var(--co-white);
+              color: var(--co-white);
+              background-color: var(--co-blue);
+              font-weight: 700;
             }
           }
         }
       }
     }
     .utilArea {
-      @include flexArea($gap: 1.6rem);
-      font-size: 1.4rem;
-      font-weight: 500;
-      .user {
-        strong {
+      @include flexArea($gap: 1.6rem, $justify: space-between, $width: 100%);
+      .left {
+        min-width: 25.2rem;
+        .watch {
+          @include flexArea($justify: space-between, $gap: 1rem);
+          color: var(--co-grayDark);
+          font-size: 1.8rem;
+          font-weight: 500;
+          .date {
+          }
+          .week {
+            @include flexArea;
+            width: 2rem;
+            height: 2rem;
+            font-size: 1.4rem;
+            color: var(--co-white);
+            background-color: var(--co-green);
+            border-radius: 100%;
+          }
+          .time {
+          }
         }
       }
-      .position {
-        @include flexArea($gap: 1rem);
-        color: var(--co-green);
+      .right {
+        @include flexArea($gap: 0.6rem);
+        font-size: 1.4rem;
         font-weight: 500;
-        span {
+        .user {
+          font-size: 1.4rem;
+          color: var(--co-black);
+          strong {
+            font-weight: 500;
+            white-space: nowrap;
+          }
+        }
+        .tag {
           @include flexArea;
           height: 2.4rem;
           padding: 0 1rem;
           border-radius: 10rem;
           color: var(--co-white);
+          white-space: nowrap;
           background-color: var(--co-green);
         }
-      }
-      .customBtn {
-        font-size: 1.2rem;
-        height: 2.4rem;
-        padding: 0 1rem;
-        font-weight: 500;
-        color: var(--co-grayDark);
-        background-color: var(--co-white);
-        border-radius: 10rem;
+        .position {
+          @include flexArea;
+          color: #666;
+        }
+        .customBtn {
+          font-size: 1.2rem;
+          height: 2.4rem;
+          padding: 0 1rem;
+          font-weight: 500;
+          color: var(--co-grayDark);
+          background-color: var(--co-white);
+          border-radius: 10rem;
+          gap: 1rem;
+          border: 1px solid #888;
+          padding: 0.4rem 1rem;
+          margin-left: 2rem;
+          img {
+            width: 1.1rem;
+            height: auto;
+          }
+        }
       }
     }
   }

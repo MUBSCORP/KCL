@@ -71,6 +71,7 @@ export default function DashboardPack() {
         { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
         { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
       ],
+      memoTotal: '',
     },
   ];
   const listData2 = [
@@ -95,6 +96,7 @@ export default function DashboardPack() {
         { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
         { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
       ],
+      memoTotal: '비고: 00만 km RPT 측정 후 내구 재개 [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우',
     },
     {
       id: 2,
@@ -117,6 +119,7 @@ export default function DashboardPack() {
         { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
         { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
       ],
+      memoTotal: '2',
     },
     {
       id: 3,
@@ -139,6 +142,7 @@ export default function DashboardPack() {
         { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
         { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
       ],
+      memoTotal: '3',
     },
     {
       id: 4,
@@ -161,6 +165,7 @@ export default function DashboardPack() {
         { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
         { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
       ],
+      memoTotal: '4',
     },
     {
       id: 5,
@@ -177,6 +182,7 @@ export default function DashboardPack() {
       ch3: 0,
       memo: false,
       memoText: [],
+      memoTotal: '5',
     },
     {
       id: 6,
@@ -193,6 +199,7 @@ export default function DashboardPack() {
       ch3: 0,
       memo: false,
       memoText: [],
+      memoTotal: '6',
     },
     {
       id: 7,
@@ -209,6 +216,7 @@ export default function DashboardPack() {
       ch3: 0,
       memo: false,
       memoText: [],
+      memoTotal: '7',
     },
     {
       id: 8,
@@ -225,6 +233,7 @@ export default function DashboardPack() {
       ch3: 0,
       memo: false,
       memoText: [],
+      memoTotal: '8',
     },
   ];
 

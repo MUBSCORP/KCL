@@ -11,7 +11,6 @@ interface ChartProps {
 export default function ChartStatus({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  // 총합 계산
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   useEffect(() => {
@@ -32,9 +31,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
         icon: 'circle',
         itemWidth: 6,
         itemHeight: 6,
-        textStyle: {
-          fontSize: 10,
-        },
+        textStyle: { fontSize: 10 },
       },
       series: [
         {
@@ -45,18 +42,10 @@ export default function ChartStatus({ title, data }: ChartProps) {
           avoidLabelOverlap: false,
           label: {
             show: true,
-            position: 'center',
-            formatter: ``,
-            fontSize: 18,
+            position: 'inside',
+            formatter: ({ data }: any) => `${data.value}`,
+            fontSize: 12,
             fontWeight: 'bold',
-          },
-          emphasis: {
-            label: { show: true, fontSize: 20, fontWeight: 'bold' },
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.2)',
-            },
           },
           labelLine: { show: false },
           data: data,
@@ -79,7 +68,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '25rem', height: '10rem' }}></div>
+      <div className="chartWrap" ref={chartRef} style={{ width: '25rem', height: '10rem' }} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ interface ListItem {
   id: number;
   title: string;
   check: boolean;
+  schedule: string;
   memo: boolean;
   memoText: string;
   operation: string;
@@ -51,6 +52,20 @@ export default function List({ listData }: ListProps) {
     setSelectedMemo(null);
   };
 
+  const [hoverOpen, setHoverOpen] = React.useState(false);
+
+  const handleHoverOpen = (item: ListItem) => {
+    setSelectedItem(item);
+    setSelectedMemo(item);
+    setHoverOpen(true);
+  };
+
+  const handleHoverClose = () => {
+    setHoverOpen(false);
+    setSelectedItem(null);
+    setSelectedMemo(null);
+  };
+
   return (
     <>
       <ul className="list">
@@ -58,7 +73,9 @@ export default function List({ listData }: ListProps) {
           <li key={item.id} data-operation={item.operation} data-checked={item.check ? 'checked' : undefined}>
             {/* 상단 영역 */}
             <div className="topArea">
-              <h3 className="tit">{item.title}</h3>
+              <h3 className="tit" onMouseEnter={() => handleHoverOpen(item)}>
+                {item.title}
+              </h3>
               <div className="right">
                 {item.memo && (
                   <IconButton className="btnMemo" type="button" aria-label="메모" onClick={() => handleClickOpen(item)}>
@@ -130,8 +147,32 @@ export default function List({ listData }: ListProps) {
           </li>
         ))}
       </ul>
+      {/* modal hover title */}
+      <Dialog className="dialogCont" open={hoverOpen} onClose={handleHoverClose} PaperProps={{ onMouseLeave: handleHoverClose }}>
+        <div className="modalWrapper dtlInfo">
+          <DialogTitle className="tit">{selectedItem?.title}</DialogTitle>
+          <DialogContent className="contents">
+            <dl>
+              <dt>
+                <h5 className="tit">스케쥴명</h5>
+              </dt>
+              <dd>
+                <p>{selectedMemo?.schedule}</p>
+              </dd>
+            </dl>
+            <dl>
+              <dt>
+                <h5 className="tit">MEMO</h5>
+              </dt>
+              <dd>
+                <p>{selectedMemo?.memoText}</p>
+              </dd>
+            </dl>
+          </DialogContent>
+        </div>
+      </Dialog>
 
-      {/* modal memo */}
+      {/* modal click memo */}
       <Dialog className="dialogCont" open={open} onClose={handleClose} aria-labelledby="alert-dialog-title">
         <div className="modalWrapper dtlInfo">
           <DialogTitle className="tit" id="alert-dialog-title">
@@ -143,11 +184,29 @@ export default function List({ listData }: ListProps) {
             </span>
           </DialogTitle>
           <DialogContent className="contents">
-            <p>{selectedMemo?.memoText}</p>
+            <dl>
+              <dt>
+                <h5 className="tit">스케쥴명</h5>
+              </dt>
+              <dd>
+                <p>{selectedMemo?.schedule}</p>
+              </dd>
+            </dl>
+            <dl>
+              <dt>
+                <h5 className="tit">MEMO</h5>
+              </dt>
+              <dd>
+                <p>{selectedMemo?.memoText}</p>
+              </dd>
+            </dl>
           </DialogContent>
           <DialogActions className="bottom">
             <Button className="negative" onClick={handleClose}>
               메모삭제
+            </Button>
+            <Button className="positive" onClick={handleClose}>
+              메모수정
             </Button>
             <Button className="positive" onClick={handleClose}>
               메모추가

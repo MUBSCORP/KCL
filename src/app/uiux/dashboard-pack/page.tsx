@@ -53,9 +53,10 @@ export default function DashboardPack() {
       id: 1, // idx
       title: '1F-001B', // 타이틀
       check: true, // 체크표시
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1', // 스케쥴
       memo: true, // 모달
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
-      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
+      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`, // memo
       operation: 'charge', // 상태
       status: 'success', // 뱃지 상태
       statusLabel: '정상', // 뱃지 텍스트
@@ -76,6 +77,7 @@ export default function DashboardPack() {
       id: 2,
       title: 'EQ-01',
       check: true,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2', // 스케쥴
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
@@ -99,6 +101,7 @@ export default function DashboardPack() {
       id: 3,
       title: '1F-001B',
       check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3', // 스케쥴
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
@@ -122,6 +125,7 @@ export default function DashboardPack() {
       id: 4,
       title: '1F-001B',
       check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4', // 스케쥴
       memo: false,
       memoText: ``,
       operation: 'rest-iso',
@@ -144,6 +148,7 @@ export default function DashboardPack() {
       id: 5,
       title: '1F-001B',
       check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 5', // 스케쥴
       memo: false,
       memoText: ``,
       operation: 'pattern',
@@ -166,6 +171,7 @@ export default function DashboardPack() {
       id: 6,
       title: '1F-001B',
       check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 6', // 스케쥴
       memo: false,
       memoText: ``,
       operation: 'balance',
@@ -188,6 +194,7 @@ export default function DashboardPack() {
       id: 7,
       title: '1F-001B',
       check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
       memo: false,
       memoText: ``,
       operation: 'chargemap',

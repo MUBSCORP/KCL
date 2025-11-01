@@ -104,6 +104,21 @@ export default function List({ listData }: ListProps) {
                 </dl>
               </div>
             ))}
+            <dl className="memoTotal">
+              <dt>Memo</dt>
+              <dd>
+                {selectedItem?.memoTotal ? (
+                  selectedItem.memoTotal
+                ) : (
+                  <div className="memoTextarea">
+                    <textarea placeholder="메모를 입력하세요" rows={5}></textarea>
+                    <button type="button">
+                      <span>저장</span>
+                    </button>
+                  </div>
+                )}
+              </dd>
+            </dl>
           </DialogContent>
 
           <DialogActions className="bottom">

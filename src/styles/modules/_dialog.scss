@@ -53,7 +53,22 @@
           }
         }
         .contents {
-          @include flexArea($gap: 1rem, $wrap: wrap, $align: strech);
+          @include flexArea($gap: 1rem, $wrap: wrap, $align: stretch);
+          > dl {
+            @include flexArea($width: 100%, $direction: column, $align: flex-start);
+            + dl {
+              margin-top: 2rem;
+            }
+            dt {
+              width: 100%;
+              h5 {
+                font-size: 1.4rem;
+              }
+            }
+            dd {
+              width: 100%;
+            }
+          }
           .infoItem {
             width: calc(50% - 1.5rem);
             padding: 2rem 1.5rem;
@@ -90,6 +105,36 @@
                 strong {
                   color: var(--co-black);
                   font-weight: 500;
+                }
+              }
+            }
+          }
+          .memoTotal {
+            position: relative;
+            margin-top: 2rem;
+            dt {
+            }
+            dd {
+              .memoTextarea {
+                border-radius: 0.5rem;
+                border: 1px solid #ccc;
+                padding: 1rem 1rem 3.5rem 1rem;
+                textarea {
+                  width: 100%;
+                  border: None;
+                }
+                button {
+                  position: absolute;
+                  background-color: #333;
+                  color: #fff;
+                  padding: 0.5rem 1rem;
+                  border-radius: 0.4rem;
+                  right: 1rem;
+                  bottom: 1rem;
+                  line-height: 1;
+                  font-size: 1.2rem;
+                  align-items: center;
+                  justify-content: center;
                 }
               }
             }

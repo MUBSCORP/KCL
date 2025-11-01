@@ -15,8 +15,8 @@ export default function TopStateCenterList() {
         {items.map((item, index) => (
           <li key={index} className={item.type === 'warning' ? 'warning' : item.type === 'danger' ? 'danger' : ''}>
             <Button className="customBtn">
-              <span className="time">{item.time}</span>
               <span className="desc">{item.desc}</span>
+              <span className="time">{item.time}</span>
             </Button>
           </li>
         ))}

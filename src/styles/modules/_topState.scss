@@ -19,7 +19,7 @@
         font-size: 1.6rem;
         font-weight: 400;
         padding-left: 1rem;
-        // line-height: 1;
+        line-height: 1;
         margin-bottom: 1.6rem;
         &::before {
           content: '';
@@ -118,6 +118,7 @@
               &:hover {
                 .desc {
                   text-decoration: underline;
+                  text-underline-offset: 0.3rem;
                 }
               }
               .time {
@@ -132,6 +133,7 @@
                 word-break: keep-all;
                 @include ell;
                 max-width: 20rem;
+                height: 1.6rem;
               }
               &::before {
                 content: '';

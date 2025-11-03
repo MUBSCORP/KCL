@@ -26,6 +26,7 @@ interface ListItem {
   ch3: number;
   memo: boolean;
   memoText: MemoText[];
+  memoTotal: string;
 }
 
 interface ListProps {
@@ -107,16 +108,15 @@ export default function List({ listData }: ListProps) {
             <dl className="memoTotal">
               <dt>Memo</dt>
               <dd>
-                {selectedItem?.memoTotal ? (
-                  selectedItem.memoTotal
-                ) : (
-                  <div className="memoTextarea">
-                    <textarea placeholder="메모를 입력하세요" rows={5}></textarea>
-                    <button type="button">
-                      <span>저장</span>
-                    </button>
-                  </div>
-                )}
+                <div className="memoTextarea">
+                  <textarea placeholder="메모를 입력하세요" rows={5} defaultValue={selectedItem?.memoTotal} disabled />
+                  <button type="button" className="btnMod">
+                    <span>수정</span>
+                  </button>
+                  <button type="button" className="btnDel">
+                    <span>삭제</span>
+                  </button>
+                </div>
               </dd>
             </dl>
           </DialogContent>

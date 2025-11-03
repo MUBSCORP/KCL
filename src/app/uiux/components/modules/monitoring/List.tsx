@@ -36,7 +36,6 @@ interface ListProps {
 }
 
 export default function List({ listData }: ListProps) {
-  // 메모 클릭용 다이얼로그
   const [open, setOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<ListItem | null>(null);
   const [selectedMemo, setSelectedMemo] = React.useState<ListItem | null>(null);
@@ -53,7 +52,6 @@ export default function List({ listData }: ListProps) {
     setSelectedMemo(null);
   };
 
-  // hover 다이얼로그
   const [hoverOpen, setHoverOpen] = React.useState(false);
   const handleHoverOpen = (item: ListItem) => {
     setSelectedItem(item);
@@ -66,7 +64,6 @@ export default function List({ listData }: ListProps) {
     setSelectedMemo(null);
   };
 
-  // ✅ 우클릭 메뉴
   const [menuPosition, setMenuPosition] = React.useState<{ mouseX: number; mouseY: number } | null>(null);
 
   const handleContextMenu = (event: React.MouseEvent) => {
@@ -96,7 +93,6 @@ export default function List({ listData }: ListProps) {
       <ul className="list">
         {listData.map((item) => (
           <li key={item.id} data-operation={item.operation} data-checked={item.check ? 'checked' : undefined}>
-            {/* 상단 영역 */}
             <div className="topArea">
               <h3 className="tit" onMouseEnter={() => handleHoverOpen(item)}>
                 {item.title}
@@ -111,7 +107,6 @@ export default function List({ listData }: ListProps) {
               </div>
             </div>
 
-            {/* 본문 영역 */}
             <div className="bodyArea">
               <dl>
                 <dt>전압</dt>
@@ -155,7 +150,6 @@ export default function List({ listData }: ListProps) {
               </dl>
             </div>
 
-            {/* 하단 영역 */}
             <div className="bottomArea">
               <ol className="cycle" data-cycle={item.cycles}>
                 {[...Array(5)].map((_, idx) => (
@@ -173,7 +167,7 @@ export default function List({ listData }: ListProps) {
         ))}
       </ul>
 
-      {/* ✅ hover modal (onContextMenu & onMouseLeave 수정됨) */}
+      {/* hover modal */}
       <Dialog
         className="dialogCont"
         open={hoverOpen}
@@ -218,13 +212,13 @@ export default function List({ listData }: ListProps) {
         </div>
       </Dialog>
 
-      {/* ✅ 우클릭 메뉴 */}
+      {/* context */}
       <Menu open={!!menuPosition} onClose={handleMenuClose} anchorReference="anchorPosition" anchorPosition={menuPosition ? { top: menuPosition.mouseY, left: menuPosition.mouseX } : undefined}>
         <MenuItem onClick={handleEdit}>수정</MenuItem>
         <MenuItem onClick={handleDelete}>삭제</MenuItem>
       </Menu>
 
-      {/* 클릭용 메모 다이얼로그 */}
+      {/* click modal */}
       <Dialog className="dialogCont" open={open} onClose={handleClose} aria-labelledby="alert-dialog-title">
         <div className="modalWrapper dtlInfo">
           <DialogTitle className="tit" id="alert-dialog-title">

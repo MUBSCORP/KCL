@@ -10,15 +10,38 @@ interface ChartProps {
 }
 
 export default function ChartRunning({ title, total, running }: ChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<echarts.ECharts | null>(null);
 
-  const stopped = total - running;
-  const percent = Math.round((running / total) * 100);
+  // ---- 안전 보정 ----
+  const toNum = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const t = Math.max(0, toNum(total));
+  const r = Math.min(Math.max(0, toNum(running)), t);
+  const stopped = Math.max(0, t - r);
+  const percent = t > 0 ? Math.round((r / t) * 100) : 0;
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // 차트 인스턴스 1회 생성 후 재사용
+    if (!chartRef.current) {
+      chartRef.current = echarts.init(containerRef.current);
+      const resize = () => chartRef.current && chartRef.current.resize();
+      window.addEventListener('resize', resize);
+      // cleanup
+      return () => {
+        window.removeEventListener('resize', resize);
+        chartRef.current?.dispose();
+        chartRef.current = null;
+      };
+    }
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current) return;
-
-    const chart = echarts.init(chartRef.current);
 
     const option: echarts.EChartsOption = {
       tooltip: {
@@ -35,53 +58,46 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
           label: {
             show: true,
             position: 'inside',
-            formatter: ({ data }: any) => `${data.value}대`,
+            formatter: ({ data }: any) => `${data?.value ?? 0}대`,
             fontSize: 12,
             fontWeight: 'bold',
           },
           labelLine: { show: false },
           data: [
-            { value: running, name: '가동' },
+            { value: r, name: '가동' },
             { value: stopped, name: '정지' },
           ],
           color: ['#86A315', '#E6E6E6'],
         },
       ],
+      // 중앙 퍼센트 텍스트를 원하면 아래 주석 해제
       // graphic: {
       //   type: 'text',
       //   left: 'center',
       //   top: 'center',
-      //   style: {
-      //     text: `${percent}%`,
-      //     fontSize: 18,
-      //     fontWeight: 'bold',
-      //   },
+      //   style: { text: `${percent}%`, fontSize: 18, fontWeight: 'bold' },
       // },
     };
 
-    chart.setOption(option);
-
-    const resizeHandler = () => chart.resize();
-    window.addEventListener('resize', resizeHandler);
-
-    return () => {
-      window.removeEventListener('resize', resizeHandler);
-      chart.dispose();
-    };
-  }, [running, total]);
+    chartRef.current.setOption(option, true);
+  }, [r, stopped, percent]);
 
   return (
     <div className="chartCont type2">
       <h3 className="tit">{title}</h3>
       <div className="innerWrap">
-        <div className="chartWrap" ref={chartRef} style={{ width: '9.4rem', height: '9.4rem' }} />
+        <div
+          className="chartWrap"
+          ref={containerRef}
+          style={{ width: '9.4rem', height: '9.4rem' }}
+        />
         <div className="legend">
           <p>
-            <strong>{percent}</strong>%
+            <strong>{String(percent)}</strong>%
           </p>
           <div className="btnWrap">
-            <span className="total">전체 {total}대</span>
-            <span className="current">가동 {running}대</span>
+            <span className="total">전체 {String(t)}대</span>
+            <span className="current">가동 {String(r)}대</span>
           </div>
         </div>
       </div>

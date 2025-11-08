@@ -57,7 +57,7 @@ header {
     .utilArea {
       @include flexArea($gap: 1.6rem, $justify: space-between, $width: 100%);
       .left {
-        min-width: 25.2rem;
+        min-width: 21rem;
         .watch {
           @include flexArea($justify: space-between, $gap: 1rem);
           color: var(--co-grayDark);

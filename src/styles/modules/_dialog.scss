@@ -4,15 +4,15 @@
 .dialogCont {
   .MuiPaper-elevation {
     width: 65rem;
-    padding: 2rem;
+    padding: 2rem 3rem 3rem;
     .modalWrapper {
       .tit {
         @include flexArea($gap: 1rem, $justify: space-between);
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px dashed var(--co-border);
+        font-size: 2.4rem;
+        line-height: 1;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        // border-bottom: 1px dashed var(--co-border);
         .btnClose {
           padding: 1rem;
           svg {
@@ -46,10 +46,21 @@
       }
       &.dtlInfo {
         .tit {
-          .temp {
-            color: var(--co-primary);
-            font-size: 1.8rem;
-            font-weight: 400;
+          .right {
+            @include flexArea;
+            .temp {
+              @include flexArea($gap: 0.4rem);
+              font-size: 2.4rem;
+              line-height: 1;
+              font-weight: 400;
+              color: #555;
+              > span {
+                color: #aaa;
+              }
+              > strong {
+                color: #007bff;
+              }
+            }
           }
         }
         .contents {
@@ -70,38 +81,53 @@
             }
           }
           .infoItem {
-            width: calc(50% - 1.5rem);
-            padding: 2rem 1.5rem;
-            border-radius: 0.8rem;
+            width: calc(50% - 0.5rem);
+            padding: 1rem;
+            border-radius: 0.6rem;
             background-color: #f1f1f1;
+            border: 1px solid #ddd;
             font-size: 1.4rem;
             dl {
               dt {
                 @include flexArea($justify: space-between);
+                > strong {
+                  font-weight: 500;
+                  font-size: 1.6rem;
+                }
                 .chip {
-                  font-size: 1.1rem;
-                  padding: 0.2rem 0.5rem;
-                  border-radius: 0.4rem;
+                  font-size: 1.4rem;
+                  font-weight: 500;
+                  width: 6rem;
+                  text-align: center;
+                  padding: 0;
+                  border-radius: 0.5rem;
+                  color: #fff;
                   &[data-type='ongoing'] {
-                    background-color: rgba(69, 209, 65, 0.05);
-                    color: #45d141;
+                    background-color: var(--state-ongoing);
                   }
                   &[data-type='stop'] {
-                    background-color: rgba(233, 57, 53, 0.05);
-                    color: #e93935;
+                    background-color: var(--state-stop);
                   }
                   &[data-type='completion'] {
-                    background-color: rgba(34, 177, 245, 0.05);
-                    color: #22b1f5;
+                    background-color: var(--state-completion);
                   }
                   &[data-type='available'] {
-                    background-color: #f1f1f1;
-                    color: #333;
+                    background-color: var(--state-available);
                   }
                 }
               }
               dd {
                 color: #666;
+                margin-top: 0.6rem;
+                background-color: #fff;
+                padding: 1rem;
+                font-size: 1.2rem;
+                border-radius: 0.5rem;
+                p {
+                  + p {
+                    margin-top: 1rem;
+                  }
+                }
                 strong {
                   color: var(--co-black);
                   font-weight: 500;
@@ -111,34 +137,57 @@
           }
           .memoTotal {
             position: relative;
-            margin-top: 2rem;
+            margin-top: 1rem;
             dt {
+              font-size: 1.8rem;
+              font-weight: 600;
             }
             dd {
               .memoTextarea {
-                border-radius: 0.5rem;
+                @include flexArea($direction: column, $width: 100%);
+                border-radius: 0.6rem;
                 border: 1px solid #ccc;
-                padding: 1rem 1rem 3.5rem 1rem;
+                background-color: #fff;
+                padding: 1rem;
+                margin-top: 0.4rem;
+                @include trans;
+                &:has(textarea:read-only) {
+                  background-color: #f9f9f9;
+                }
                 textarea {
                   width: 100%;
-                  border: None;
+                  border: none;
+                  background-color: transparent;
+                  line-height: 1.5;
+                  &:focus {
+                    outline: none;
+                  }
                 }
-                button {
-                  position: absolute;
-                  color: var(--co-white);
-                  background-color: var(--co-red);
-                  padding: 0.5rem 1rem;
-                  border-radius: 0.4rem;
-                  right: 1rem;
-                  bottom: 1rem;
-                  line-height: 1;
-                  font-size: 1.2rem;
-                  align-items: center;
-                  justify-content: center;
-                  &.btnMod {
-                    right: 6rem;
-                    background-color: var(--co-primary);
-                    color: var(--co-white);
+                .btnWrap {
+                  @include flexArea($gap: 0.4rem, $justify: flex-end, $width: 100%);
+                  margin-top: 1rem;
+                  button {
+                    padding: 0.5rem 1rem;
+                    border-radius: 0.4rem;
+                    right: 1rem;
+                    bottom: 1rem;
+                    line-height: 1;
+                    font-size: 1.2rem;
+                    align-items: center;
+                    justify-content: center;
+                    &.btnMod {
+                      right: 6rem;
+                      background-color: var(--co-primary);
+                      color: var(--co-white);
+                    }
+                    &.btnConfirm {
+                      background-color: var(--co-black);
+                      color: var(--co-white);
+                    }
+                    &.btnDel {
+                      color: var(--co-white);
+                      background-color: var(--co-red);
+                    }
                   }
                 }
               }

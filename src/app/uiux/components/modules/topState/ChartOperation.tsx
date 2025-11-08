@@ -46,7 +46,9 @@ export default function ChartOperation({ title, data }: ChartProps) {
                 color: '#fff',
                 backgroundColor: colors[i],
                 borderRadius: 3,
-                padding: [2, 4],
+                padding: [4, 4, 2],
+                width: 25,
+                align: 'right',
               };
               return acc;
             },
@@ -64,7 +66,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
           center: ['27%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: true,
+            show: false,
             position: 'inside',
             formatter: ({ data }: any) => `${data.value}`,
             fontSize: 12,

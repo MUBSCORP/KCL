@@ -41,7 +41,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
           center: ['21%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: true,
+            show: false,
             position: 'inside',
             formatter: ({ data }: any) => `${data.value}`,
             fontSize: 12,

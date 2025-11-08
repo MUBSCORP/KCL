@@ -23,7 +23,7 @@ export default function ChartMonth({ title, data }: ChartProps) {
         formatter: (params: any) => {
           let result = `${params[0].name}<br/>`;
           params.forEach((item: any) => {
-            result += `<span style="display:inline-block;width:3.4rem;margin-right:4px;border-radius:10px;width:8px;height:8px;background-color:${item.color}"></span>
+            result += `<span style="display:inline-block;width:3.4rem;margin-right:4px;border-radius:10px;width:8px;height:8px;line-height:8px;background-color:${item.color}"></span>
               ${item.seriesName}: ${item.value}대<br/>`;
           });
           return result;

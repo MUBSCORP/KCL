@@ -50,7 +50,9 @@ export default function DashboardPack() {
   // monitoring list
   const listData = [
     {
-      id: 1, // idx
+      id: 1, // id
+      x: 1, // x 좌표
+      y: 1, // y 좌표
       title: '1F-001B', // 타이틀
       check: true, // 체크표시
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1', // 스케쥴
@@ -75,6 +77,8 @@ export default function DashboardPack() {
     },
     {
       id: 2,
+      x: 2,
+      y: 1,
       title: 'EQ-01',
       check: true,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2', // 스케쥴
@@ -99,6 +103,8 @@ export default function DashboardPack() {
     },
     {
       id: 3,
+      x: 3,
+      y: 1,
       title: '1F-001B',
       check: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3', // 스케쥴
@@ -123,6 +129,8 @@ export default function DashboardPack() {
     },
     {
       id: 4,
+      x: 4,
+      y: 1,
       title: '1F-001B',
       check: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4', // 스케쥴
@@ -146,6 +154,8 @@ export default function DashboardPack() {
     },
     {
       id: 5,
+      x: 5,
+      y: 1,
       title: '1F-001B',
       check: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 5', // 스케쥴
@@ -169,6 +179,8 @@ export default function DashboardPack() {
     },
     {
       id: 6,
+      x: 6,
+      y: 1,
       title: '1F-001B',
       check: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 6', // 스케쥴
@@ -192,6 +204,239 @@ export default function DashboardPack() {
     },
     {
       id: 7,
+      x: 7,
+      y: 1,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      memo: false,
+      memoText: ``,
+      operation: 'chargemap',
+      status: 'success2',
+      statusLabel: '정상',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '17',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 3,
+      activeCycles: 3,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 8,
+      x: 8,
+      y: 1,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      memo: false,
+      memoText: ``,
+      operation: 'chargemap',
+      status: 'success2',
+      statusLabel: '정상',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '17',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 3,
+      activeCycles: 3,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 9,
+      x: 9,
+      y: 1,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      memo: false,
+      memoText: ``,
+      operation: 'chargemap',
+      status: 'success2',
+      statusLabel: '정상',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '17',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 3,
+      activeCycles: 3,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 10,
+      x: 10,
+      y: 1,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      memo: false,
+      memoText: ``,
+      operation: 'chargemap',
+      status: 'success2',
+      statusLabel: '정상',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '17',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 3,
+      activeCycles: 3,
+      time: '1D 05:54:30',
+    },
+    // *
+    // * line 2
+    // *
+    {
+      id: 2_1,
+      x: 1,
+      y: 2,
+      title: '1F-001B',
+      check: true,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1',
+      memo: true,
+      memoText: `비고: 00만 km RPT 측정 후 내구 재개
+      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
+      operation: 'charge',
+      status: 'success',
+      statusLabel: '정상',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '1(Rest)',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 3,
+      activeCycles: 3,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 2_2,
+      x: 2,
+      y: 2,
+      title: 'EQ-01',
+      check: true,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2', // 스케쥴
+      memo: true,
+      memoText: `비고: 00만 km RPT 측정 후 내구 재개
+      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
+      operation: 'discharge',
+      status: 'rest',
+      statusLabel: '대기',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '1(Rest)',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 2,
+      activeCycles: 2,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 2_3,
+      x: 3,
+      y: 2,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3', // 스케쥴
+      memo: true,
+      memoText: `비고: 00만 km RPT 측정 후 내구 재개
+      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
+      operation: 'rest',
+      status: 'complete',
+      statusLabel: '완료',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '1(Rest)',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 2,
+      activeCycles: 2,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 2_4,
+      x: 4,
+      y: 2,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4', // 스케쥴
+      memo: false,
+      memoText: ``,
+      operation: 'rest-iso',
+      status: 'warning',
+      statusLabel: '경고',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '17',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 1,
+      activeCycles: 1,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 2_9,
+      x: 9,
+      y: 2,
+      title: '1F-001B',
+      check: false,
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      memo: false,
+      memoText: ``,
+      operation: 'chargemap',
+      status: 'success2',
+      statusLabel: '정상',
+      voltage: '203.9 aV',
+      current: '31.6 aA',
+      power: '6.44 akW',
+      step: '17',
+      cycle: '4/4',
+      rly: 'ON',
+      dgv: '0.9',
+      temp: '33.1/30',
+      humidity: '40%/70%',
+      cycles: 3,
+      activeCycles: 3,
+      time: '1D 05:54:30',
+    },
+    {
+      id: 2_10,
+      x: 10,
+      y: 2,
       title: '1F-001B',
       check: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
@@ -253,10 +498,6 @@ export default function DashboardPack() {
       <section className="monitoring">
         <h2 className="ir">모니터링 화면</h2>
         <div className="innerWrapper">
-          <List listData={listData} />
-        </div>
-        <div className="innerWrapper">
-          <List listData={listData} />
           <List listData={listData} />
         </div>
       </section>

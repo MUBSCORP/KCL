@@ -9,30 +9,42 @@
       margin-top: 2rem;
     }
     @include flexArea($gap: 2rem, $justify: space-between, $align: flex-start);
-    > ul.list:last-child {
-      justify-content: flex-end;
-    }
+    // > ul.list:last-child {
+    //   justify-content: flex-end;
+    // }
     > ul.list {
-      @include flexArea($gap: 1rem, $justify: flex-start, $align: stretch, $wrap: wrap);
+      @include flexArea($gap: 1rem, $justify: flex-start, $align: stretch, $wrap: wrap, $width: 100%);
+      position: relative;
+      @include trans;
+
       > li {
-        position: relative;
-        width: 18rem;
-        min-width: 18rem;
-        padding: 1rem;
-        border-radius: 0.8rem;
-        background-color: var(--co-grayLight);
-        border: 1px solid var(--co-border);
-        box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.2);
+        position: absolute;
+        width: 10%;
+        padding: 0 0.5rem 4rem 0.5rem;
+        .inner {
+          padding: 1rem;
+          border-radius: 0.8rem;
+          background-color: var(--co-grayLight);
+          border: 1px solid var(--co-border);
+          box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.2);
+        }
         .topArea {
           @include flexArea($gap: 1rem, $justify: space-between, $align: center);
           margin-bottom: 0.3rem;
           .tit {
             font-size: 1.8rem;
             font-weight: 600;
+            cursor: pointer;
+            @include ell;
+            &:hover {
+              text-decoration: underline;
+              text-underline-offset: 0.3rem;
+            }
           }
           .right {
             @include flexArea($gap: 0.4rem, $align: center);
             .btnMemo {
+              cursor: default;
               img {
                 width: 1.8rem;
                 height: 1.8rem;
@@ -46,6 +58,7 @@
               padding: 0 0.6rem;
               border-radius: 0.5rem;
               background-color: var(--co-gray);
+              line-height: 1;
               &[data-status='success'] {
                 background-color: var(--state-ongoing);
               }
@@ -178,7 +191,7 @@
             content: '';
             position: absolute;
             top: -0.8rem;
-            left: -0.8rem;
+            left: -0.3rem;
             width: 1.6rem;
             height: 1.6rem;
             background-image: url('../../assets/images/icon/check.png');
@@ -188,9 +201,11 @@
         }
 
         &[data-operation='charge'] {
-          background-color: rgba(255, 209, 204, 0.5);
-          border: 1px solid var(--state-charge);
-          box-shadow: 0 0.3rem 0.8rem var(--state-charge);
+          .inner {
+            background-color: rgba(255, 209, 204, 0.5);
+            border: 1px solid var(--state-charge);
+            box-shadow: 0 0.3rem 0.8rem var(--state-charge);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #ed4c3a;
@@ -198,9 +213,11 @@
           }
         }
         &[data-operation='discharge'] {
-          background-color: rgba(204, 229, 244, 0.5);
-          border: 1px solid var(--state-discharge);
-          box-shadow: 0 0.3rem 0.8rem var(--state-discharge);
+          .inner {
+            background-color: rgba(204, 229, 244, 0.5);
+            border: 1px solid var(--state-discharge);
+            box-shadow: 0 0.3rem 0.8rem var(--state-discharge);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #346a8c;
@@ -208,9 +225,11 @@
           }
         }
         &[data-operation='rest'] {
-          background-color: rgba(255, 245, 204, 0.5);
-          border: 1px solid var(--state-rest);
-          box-shadow: 0 0.3rem 0.8rem var(--state-rest);
+          .inner {
+            background-color: rgba(255, 245, 204, 0.5);
+            border: 1px solid var(--state-rest);
+            box-shadow: 0 0.3rem 0.8rem var(--state-rest);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #e2bc22;
@@ -218,9 +237,11 @@
           }
         }
         &[data-operation='rest-iso'] {
-          background-color: rgba(230, 255, 204, 0.5);
-          border: 1px solid var(--state-rest-iso);
-          box-shadow: 0 0.3rem 0.8rem var(--state-rest-iso);
+          .inner {
+            background-color: rgba(230, 255, 204, 0.5);
+            border: 1px solid var(--state-rest-iso);
+            box-shadow: 0 0.3rem 0.8rem var(--state-rest-iso);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #81e01c;
@@ -228,9 +249,11 @@
           }
         }
         &[data-operation='pattern'] {
-          background-color: rgba(230, 213, 237, 0.5);
-          border: 1px solid var(--state-pattern);
-          box-shadow: 0 0.3rem 0.8rem var(--state-pattern);
+          .inner {
+            background-color: rgba(230, 213, 237, 0.5);
+            border: 1px solid var(--state-pattern);
+            box-shadow: 0 0.3rem 0.8rem var(--state-pattern);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #aa37d7;
@@ -238,9 +261,11 @@
           }
         }
         &[data-operation='balance'] {
-          background-color: rgba(118, 245, 137, 0.2);
-          border: 1px solid var(--state-balance);
-          box-shadow: 0 0.3rem 0.8rem var(--state-balance);
+          .inner {
+            background-color: rgba(118, 245, 137, 0.2);
+            border: 1px solid var(--state-balance);
+            box-shadow: 0 0.3rem 0.8rem var(--state-balance);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #2dc243;
@@ -248,9 +273,11 @@
           }
         }
         &[data-operation='chargemap'] {
-          background-color: rgba(255, 220, 236, 0.5);
-          border: 1px solid var(--state-chargemap);
-          box-shadow: 0 0.3rem 0.8rem var(--state-chargemap);
+          .inner {
+            background-color: rgba(255, 220, 236, 0.5);
+            border: 1px solid var(--state-chargemap);
+            box-shadow: 0 0.3rem 0.8rem var(--state-chargemap);
+          }
           .bottomArea {
             .cycle li.isActive::before {
               background-color: #df3481;
@@ -263,16 +290,24 @@
   &.type2 {
     > .innerWrapper {
       > ul.list {
+        position: relative;
+        @include trans;
         > li {
-          width: 11.8rem;
-          height: 10.8rem;
-          min-width: auto;
-          padding: 1rem;
-          border-radius: 0.6rem;
-          background-color: var(--co-white);
-          border: 2px solid var(--co-border);
-          box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.1);
+          position: absolute;
+          width: 6.6667%;
+          max-width: 6.6667%;
+          padding: 0 0.4rem 0.8rem 0.4rem;
           cursor: pointer;
+          .inner {
+            position: relative;
+            width: 100%;
+            height: 10.8rem;
+            padding: 1rem;
+            border-radius: 0.6rem;
+            background-color: var(--co-white);
+            border: 2px solid var(--co-border);
+            box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.1);
+          }
           .topArea {
             justify-content: center;
             .tit {
@@ -329,89 +364,107 @@
             > strong {
               font-weight: 600;
             }
-            &::before {
-              content: '···';
-              @include flexArea;
-              width: 2rem;
-              height: 2rem;
-              border-radius: 50%;
-              background: var(--co-grayLight);
-              text-align: center;
-              font-weight: 700;
-              line-height: 1;
-              margin-right: 0.5rem;
+          }
+          i {
+            @include flexArea;
+            left: 0;
+            bottom: 0;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: var(--co-grayLight);
+            text-align: center;
+            font-weight: 700;
+            line-height: 1;
+            margin-right: 0.5rem;
+            &.success {
+              background: #fff url(../../assets/images/icon/play.png);
+              background-position: center;
+              background-repeat: no-repeat;
+              background-size: contain;
+              background-position: center;
+            }
+            &.stay {
+              background: #fff url(../../assets/images/icon/stay.png);
+              background-position: center;
+              background-repeat: no-repeat;
+              background-size: 70%;
+              background-position: center;
+            }
+            &.error {
+              background: #fff url(../../assets/images/icon/danger.png);
+              background-position: center;
+              background-repeat: no-repeat;
+              background-size: contain;
+              background-position: center;
             }
           }
 
           &[data-operation='ongoing'] {
-            background-color: rgba(69, 209, 65, 0.05);
-            border-color: #45d141;
-            box-shadow: 0 0.4rem 0.8rem rgba(69, 209, 65, 0.2);
-            .bottomArea {
-              &::before {
-                content: '';
-                background: #fff url(../../assets/images/icon/play.png);
-                background-position: center;
-                background-repeat: no-repeat;
-                background-size: contain;
-                background-position: center;
-              }
+            .inner {
+              background-color: rgba(69, 209, 65, 0.05);
+              border-color: #45d141;
+              box-shadow: 0 0.4rem 0.8rem rgba(69, 209, 65, 0.2);
             }
           }
           &[data-operation='stop'] {
-            background-color: rgba(233, 57, 53, 0.05);
-            border-color: #e93935;
-            box-shadow: 0 0.4rem 0.8rem rgba(233, 57, 53, 0.2);
-            .bottomArea {
-              &::before {
-                content: '';
-                background: #fff url(../../assets/images/icon/danger.png);
-                background-position: center;
-                background-repeat: no-repeat;
-                background-size: contain;
-                background-position: center;
-              }
+            .inner {
+              background-color: rgba(233, 57, 53, 0.05);
+              border-color: #e93935;
+              box-shadow: 0 0.4rem 0.8rem rgba(233, 57, 53, 0.2);
             }
           }
           &[data-operation='completion'] {
-            background-color: rgba(34, 177, 245, 0.05);
-            border-color: #22b1f5;
-            box-shadow: 0 0.4rem 0.8rem rgba(34, 177, 245, 0.1);
+            .inner {
+              background-color: rgba(34, 177, 245, 0.05);
+              border-color: #22b1f5;
+              box-shadow: 0 0.4rem 0.8rem rgba(34, 177, 245, 0.1);
+            }
           }
           &[data-operation='available'] {
-            background-color: var(--co-white);
-            border-color: var(--co-gray);
-            box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.05);
+            .inner {
+              // background-color: var(--co-white);
+              border-color: var(--co-gray);
+              box-shadow: 0 0.4rem 0.8rem rgba(0, 0, 0, 0.05);
+            }
           }
 
           &[data-ready='ready'] {
-            @include flexArea($width: 11.8rem);
-            .topArea {
-              font-size: 1.4rem;
-              font-weight: 400;
-              color: #666;
-              text-align: center;
-              white-space: pre-line;
-            }
-            .bodyArea {
-              display: none !important;
-            }
-            .bottomArea {
-              display: none;
+            @include flexArea($width: 6.6667%);
+            .inner {
+              @include flexArea($align: center, $width: 100%);
+              .topArea {
+                font-size: 1.4rem;
+                font-weight: 400;
+                color: #666;
+                text-align: center;
+                .tit {
+                  white-space: pre-line;
+                  word-break: keep-all;
+                }
+              }
+              .bodyArea {
+                display: none !important;
+              }
+              .bottomArea {
+                display: none;
+              }
             }
           }
 
           &[data-shutdown='shutdown'] {
-            &::after {
-              content: '';
-              position: absolute;
-              width: calc(100% + 0.4rem);
-              height: calc(100% + 0.4rem);
-              border-radius: 0.6rem;
-              border: 2px solid var(--co-white);
-              left: -0.2rem;
-              top: -0.2rem;
-              animation: blinkShutdown 1s infinite alternate;
+            .inner {
+              &::after {
+                content: '';
+                position: absolute;
+                width: calc(100% + 0.4rem);
+                height: calc(100% + 0.4rem);
+                border-radius: 0.6rem;
+                border: 2px solid var(--co-white);
+                left: -0.2rem;
+                top: -0.2rem;
+                animation: blinkShutdown 1s infinite alternate;
+              }
             }
             @keyframes blinkShutdown {
               0% {

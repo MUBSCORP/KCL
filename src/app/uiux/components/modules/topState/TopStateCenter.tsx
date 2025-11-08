@@ -10,7 +10,7 @@ export default function TopStateCenter() {
       <h3 className="tit">
         <span>
           <i />
-          실시간 이벤트 로근 & 알림
+          실시간 이벤트 로그 & 알림
         </span>
         <Button className="customBtn">more</Button>
       </h3>

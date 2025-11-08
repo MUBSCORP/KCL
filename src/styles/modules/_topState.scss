@@ -2,7 +2,7 @@
 @use 'common/mixins' as *;
 
 .topState {
-  @include flexArea($gap: 1rem, $justify: space-between, $width: calc(100% - 2rem));
+  @include flexArea($gap: 1rem, $justify: space-between, $align: flex-start, $width: calc(100% - 2rem));
   min-width: var(--min-width);
   padding: 2rem;
   margin: 0 1rem;
@@ -19,7 +19,6 @@
         font-size: 1.6rem;
         font-weight: 400;
         padding-left: 1rem;
-        line-height: 1;
         margin-bottom: 1.6rem;
         &::before {
           content: '';

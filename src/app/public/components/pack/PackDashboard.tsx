@@ -22,13 +22,35 @@ import titleIcon from '@/assets/images/icon/detail.png';
 import List from '@/app/public/components/modules/monitoring/List';
 
 type MonitoringItem = {
-  id: number; title: string; check: boolean; schedule: string;
-  memo: boolean; memoText: string;
-  operation: string; status: string; statusLabel: string;
-  voltage: string; current: string; power: string;
-  step: string; cycle: string; rly: string; dgv: string;
-  temp: string; humidity: string; cycles: number; activeCycles: number;
+  id: number;
+  title: string;
+  check: boolean;
+  schedule: string;
+  memo: boolean;
+  memoText: string;
+  operation: string;
+  status: string;
+  statusLabel: string;
+  voltage: string;
+  current: string;
+  power: string;
+  step: string;
+  cycle: string;
+  rly: string;
+  dgv: string;
+  temp: string;
+  humidity: string;
+  cycles: number;
+  activeCycles: number;
   time: string;
+
+  // UI/UX 그리드 배치용 (백엔드에서 내려오도록)
+  x?: number;
+  y?: number;
+
+  // 메모 API 식별자
+  eqpid?: string;
+  channelIndex?: number;
 };
 
 const fetcher = (path: string) => api<MonitoringItem[]>(path);
@@ -58,13 +80,11 @@ export default function PackDashboard() {
       };
     }
 
-    // PACK 규칙: 'rest','rest-iso','warning','error'는 비가동으로 취급
     const total = listData.length;
     const nonRunningStatuses = new Set(['rest', 'rest-iso', 'warning', 'error']);
     const nonRunning = listData.filter(i => nonRunningStatuses.has(i.status)).length;
     const running = Math.max(total - nonRunning, 0);
 
-    // PACK 운전모드 분포
     const opBuckets: Record<string, number> = {
       CHARGE: 0, DISCHARGE: 0, REST: 0, 'REST(ISO)': 0, PATTERN: 0, BALANCE: 0, CHARGEMAP: 0,
     };
@@ -80,7 +100,6 @@ export default function PackDashboard() {
     });
     const opDist = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
 
-    // PACK 상태 분포: 정상/경고/위험 (대기/완료 제외)
     const stBuckets: Record<'정상' | '경고' | '위험', number> = { 정상: 0, 경고: 0, 위험: 0 };
     listData.forEach(i => {
       if (i.statusLabel === '경고') stBuckets['경고']++;
@@ -115,7 +134,10 @@ export default function PackDashboard() {
 
         <div className="right">
           <ChartToday title="오늘 전력량" data={todayChart} />
-          <ul className="legend"><li className="charge">충전</li><li>방전</li></ul>
+          <ul className="legend">
+            <li className="charge">충전</li>
+            <li>방전</li>
+          </ul>
           <ChartMonth title="월별 전력량" data={monthChart} />
         </div>
       </section>
@@ -132,10 +154,9 @@ export default function PackDashboard() {
       {/* monitoring */}
       <section className="monitoring">
         <h2 className="ir">모니터링 화면</h2>
-        <div className="innerWrapper">{!loading && listData ? <List listData={listData} /> : null}</div>
         <div className="innerWrapper">
-          {!loading && listData ? <List listData={listData} /> : null}
-          {!loading && listData ? <List listData={listData} /> : null}
+          {/* 🔴 여기서 undefined 방지 */}
+          <List listData={listData ?? []} />
         </div>
       </section>
     </>

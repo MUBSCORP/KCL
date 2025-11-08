@@ -17,7 +17,11 @@ export default function ChartToday({ title, data }: ChartProps) {
     const chart = echarts.init(chartRef.current);
 
     const option: echarts.EChartsOption = {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        textStyle: { fontSize: 10 }, // UI/UX: 툴팁 폰트 크기
+      },
       grid: {
         left: '3%',
         right: '10px',
@@ -28,7 +32,7 @@ export default function ChartToday({ title, data }: ChartProps) {
       xAxis: { type: 'value', show: true },
       yAxis: {
         type: 'category',
-        data: data.map((d) => d.name),
+        data: data.map(d => d.name),
         axisLabel: { show: false },
         axisTick: { show: false },
         axisLine: { show: false },
@@ -36,9 +40,9 @@ export default function ChartToday({ title, data }: ChartProps) {
       series: [
         {
           type: 'bar',
-          data: data.map((d) => d.value),
+          data: data.map(d => d.value),
           itemStyle: {
-            color: function (params) {
+            color: function (params: any) {
               const colors = ['#5B9BD5', '#ED7D31'];
               return colors[params.dataIndex % colors.length];
             },
@@ -61,7 +65,11 @@ export default function ChartToday({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '19.4rem', height: '10rem' }}></div>
+      <div
+        className="chartWrap"
+        ref={chartRef}
+        style={{ width: '19.4rem', height: '10.8rem' }} // UI/UX: 높이 조정
+      />
     </div>
   );
 }

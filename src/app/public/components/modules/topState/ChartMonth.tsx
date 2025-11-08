@@ -20,10 +20,11 @@ export default function ChartMonth({ title, data }: ChartProps) {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
+        textStyle: { fontSize: 10 }, // 🔹 UI/UX: 툴팁 폰트 크기
         formatter: (params: any) => {
-          let result = `${params[0].name}<br/>`;
+          let result = `<strong style="color:#000;font-size:1.1rem;font-weight:500">${params[0].name}월</strong><br/>`;
           params.forEach((item: any) => {
-            result += `<span style="display:inline-block;width:3.4rem;margin-right:4px;border-radius:10px;width:8px;height:8px;background-color:${item.color}"></span>
+            result += `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:8px;height:8px;line-height:8px;background-color:${item.color}"></span>
               ${item.seriesName}: ${item.value}대<br/>`;
           });
           return result;
@@ -38,7 +39,7 @@ export default function ChartMonth({ title, data }: ChartProps) {
       },
       xAxis: {
         type: 'category',
-        data: data.map((d) => d.name),
+        data: data.map(d => d.name),
         axisTick: { alignWithLabel: true },
       },
       yAxis: {
@@ -50,14 +51,14 @@ export default function ChartMonth({ title, data }: ChartProps) {
           name: '충전',
           type: 'bar',
           barWidth: '35%',
-          data: data.map((d) => d.charge),
+          data: data.map(d => d.charge),
           itemStyle: { color: '#5B9BD5' },
         },
         {
           name: '방전',
           type: 'bar',
           barWidth: '35%',
-          data: data.map((d) => d.discharge),
+          data: data.map(d => d.discharge),
           itemStyle: { color: '#ED7D31' },
         },
       ],
@@ -67,6 +68,7 @@ export default function ChartMonth({ title, data }: ChartProps) {
 
     const handleResize = () => chart.resize();
     window.addEventListener('resize', handleResize);
+
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
@@ -76,7 +78,12 @@ export default function ChartMonth({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '23.5rem', height: '10rem' }} />
+      {/* 🔹 UI/UX: 높이 10.8rem */}
+      <div
+        className="chartWrap"
+        ref={chartRef}
+        style={{ width: '23.5rem', height: '10.8rem' }}
+      />
     </div>
   );
 }

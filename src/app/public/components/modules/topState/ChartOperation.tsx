@@ -11,7 +11,8 @@ interface ChartProps {
 export default function ChartOperation({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const colors = ['#5B9BD5', '#ED7D31', '#C00000'];
+  // UI/UX 팔레트
+  const colors = ['#45D141', '#E93935', '#22B1F5', '#AAA'];
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -25,6 +26,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
         trigger: 'item',
         formatter: '{b}: {c} ({d}%)',
         confine: true,
+        textStyle: { fontSize: 10 },
       },
       legend: {
         orient: 'vertical',
@@ -34,25 +36,29 @@ export default function ChartOperation({ title, data }: ChartProps) {
         itemWidth: 6,
         itemHeight: 6,
         formatter: (name: string) => {
-          const idx = data.findIndex((d) => d.name === name);
+          const idx = data.findIndex(d => d.name === name);
+          if (idx === -1) return name; // 방어 로직
           return `{a|${name}} {b${idx}|${data[idx].value}대}`;
         },
         textStyle: {
-          fontSize: 11,
-          rich: data.reduce(
-            (acc, d, i) => {
-              acc[`b${i}`] = {
-                fontSize: 11,
-                color: '#fff',
-                backgroundColor: colors[i],
-                borderRadius: 3,
-                padding: [2, 4],
-              };
-              return acc;
-            },
-            {} as Record<string, any>,
-          ),
-          a: { fontSize: 11 },
+          fontSize: 10,
+          rich: {
+            a: { width: 50 },
+            ...data.reduce(
+              (acc, d, i) => {
+                acc[`b${i}`] = {
+                  color: '#fff',
+                  backgroundColor: colors[i] ?? '#888',
+                  borderRadius: 3,
+                  padding: [3, 4, 1],
+                  width: 25,
+                  align: 'right',
+                };
+                return acc;
+              },
+              {} as Record<string, any>,
+            ),
+          },
         } as any,
       } as echarts.LegendComponentOption,
 
@@ -60,7 +66,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
         {
           name: title,
           type: 'pie',
-          radius: ['60%', '90%'],
+          radius: ['50%', '90%'],           // UI 버전 값
           center: ['27%', '50%'],
           avoidLabelOverlap: false,
           label: {
@@ -71,7 +77,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
             fontWeight: 'bold',
           },
           labelLine: { show: false },
-          data: data,
+          data,
           color: colors,
         },
       ],
@@ -86,12 +92,16 @@ export default function ChartOperation({ title, data }: ChartProps) {
       window.removeEventListener('resize', resizeObserver);
       chart.dispose();
     };
-  }, [data, total, title]);
+  }, [data, total, title, colors]);
 
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '17.5rem', height: '9.4rem' }} />
+      <div
+        className="chartWrap"
+        ref={chartRef}
+        style={{ width: '22rem', height: '10.4rem' }} // UI 버전 사이즈
+      />
     </div>
   );
 }

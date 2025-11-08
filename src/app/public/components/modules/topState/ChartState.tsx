@@ -23,6 +23,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
         trigger: 'item',
         formatter: '{b}: {c} ({d}%)',
         confine: true,
+        textStyle: { fontSize: 10 }, // UI/UX: 툴팁 폰트 크기
       },
       legend: {
         orient: 'vertical',
@@ -37,8 +38,8 @@ export default function ChartStatus({ title, data }: ChartProps) {
         {
           name: '장비현황',
           type: 'pie',
-          radius: ['60%', '90%'],
-          center: ['21%', '50%'],
+          radius: ['50%', '90%'],      // UI/UX: 반지름 조정
+          center: ['24%', '50%'],      // UI/UX: 위치 조정
           avoidLabelOverlap: false,
           label: {
             show: true,
@@ -48,8 +49,15 @@ export default function ChartStatus({ title, data }: ChartProps) {
             fontWeight: 'bold',
           },
           labelLine: { show: false },
-          data: data,
-          color: ['#ffd1cc', '#cce5f4', '#fff5cc', '#e6ffcc', '#e6d5ed', '#76f589', '#ffdcec'],
+          data,
+          color: [
+            '#AAAAAA',
+            '#45D141',
+            '#90FF8D',
+            '#22B1F5',
+            '#FFCC00',
+            '#E93935',
+          ], // UI/UX 팔레트
         },
       ],
     };
@@ -68,7 +76,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '25rem', height: '10rem' }} />
+      <div
+        className="chartWrap"
+        ref={chartRef}
+        style={{ width: '22rem', height: '10.4rem' }} // UI/UX: 사이즈 반영
+      />
     </div>
   );
 }

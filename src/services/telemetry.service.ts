@@ -27,6 +27,6 @@ export type MonitoringItem = {
     lastEventTs?: string | null;
 };
 
-export async function fetchMonitoringList(type: 'PACK' | 'CYCLER') {
+export async function fetchMonitoringList(type: 'PACK' | 'CELL') {
     return api<MonitoringItem[]>(`/api/monitoring/${type}/list`);
 }

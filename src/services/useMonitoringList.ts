@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchMonitoringList, MonitoringItem } from './telemetry.service';
 
-export function useMonitoringList(type: 'PACK' | 'CYCLER') {
+export function useMonitoringList(type: 'PACK' | 'CELL') {
   const [data, setData] = useState<MonitoringItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

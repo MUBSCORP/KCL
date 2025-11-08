@@ -23,6 +23,6 @@ export type MonitoringItem = {
   activeCycles: number;
   time: string;
 };
-export async function fetchMonitoringList(type: 'PACK' | 'CYCLER'): Promise<MonitoringItem[]> {
+export async function fetchMonitoringList(type: 'PACK' | 'CELL'): Promise<MonitoringItem[]> {
   return api<MonitoringItem[]>(`/api/monitoring/${type}/list`);
 }

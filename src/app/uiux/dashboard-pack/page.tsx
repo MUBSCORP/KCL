@@ -21,18 +21,18 @@ export default function DashboardPack() {
   // chart props
   const chartData = { total: 20, running: 15 };
   const chartData2 = [
-    { name: 'CHARGE', value: 20 },
-    { name: 'DISCHARGE', value: 15 },
-    { name: 'REST', value: 10 },
-    { name: 'REST(ISO)', value: 10 },
-    { name: 'PATTERN', value: 15 },
-    { name: 'BALANCE', value: 20 },
-    { name: 'CHARGEMAP', value: 10 },
+    { name: '대기', value: 20 },
+    { name: '정상(충방전기)', value: 15 },
+    { name: '정상(챔버)', value: 10 },
+    { name: '완료', value: 10 },
+    { name: '경고', value: 15 },
+    { name: '위험', value: 10 },
   ];
   const chartData3 = [
-    { name: '정상', value: 13 },
-    { name: '경고', value: 2 },
-    { name: '위험', value: 1 },
+    { name: '진행중', value: 13 },
+    { name: '정지', value: 2 },
+    { name: '완료', value: 1 },
+    { name: '사용가능', value: 1 },
   ];
   const chartData4 = [
     { name: '방전', value: 280 },
@@ -55,13 +55,13 @@ export default function DashboardPack() {
       y: 1, // y 좌표
       title: '1F-001B', // 타이틀
       check: true, // 체크표시
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1', // 스케줄
       memo: true, // 모달
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
-      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`, // memo
-      operation: 'charge', // 상태
-      status: 'success', // 뱃지 상태
-      statusLabel: '정상', // 뱃지 텍스트
+      [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`, // 메모
+      operation: 'charge', // 상태: charge, discharge, rest, rest-iso, pattern, blance, chargemap
+      status: 'normal', // 뱃지 상태: rest(대기), normal(정상(충방전기)), normal_chamber(정상(챔버)), completion(완료), warning(경고), danger(위험)
+      statusLabel: '정상', // 뱃지 텍스트: 대기, 정상, 위험,정상,완료,경고
       voltage: '203.9 aV', // 전압
       current: '31.6 aA', // 전류
       power: '6.44 akW', // 파원
@@ -69,7 +69,7 @@ export default function DashboardPack() {
       cycle: '4/4', // 사이클
       rly: 'ON', // rly
       dgv: '0.9', // dgv
-      temp: '33.1/30', // 온도
+      temp: '33.1℃/30℃', // 온도
       humidity: '40%/70%', // 습도
       cycles: 3, // 사이클
       activeCycles: 3, // 현재사이클
@@ -81,7 +81,7 @@ export default function DashboardPack() {
       y: 1,
       title: 'EQ-01',
       check: true,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
@@ -95,7 +95,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 2,
       activeCycles: 2,
@@ -107,13 +107,13 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
       operation: 'rest',
-      status: 'complete',
-      statusLabel: '완료',
+      status: 'normal',
+      statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
       power: '6.44 akW',
@@ -121,7 +121,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 2,
       activeCycles: 2,
@@ -133,12 +133,12 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4',
       memo: false,
       memoText: ``,
       operation: 'rest-iso',
-      status: 'warning',
-      statusLabel: '경고',
+      status: 'normal_chamber',
+      statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
       power: '6.44 akW',
@@ -146,7 +146,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 1,
       activeCycles: 1,
@@ -158,12 +158,12 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 5', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 5',
       memo: false,
       memoText: ``,
       operation: 'pattern',
-      status: 'error',
-      statusLabel: '위험',
+      status: 'completion',
+      statusLabel: '완료',
       voltage: '203.9 aV',
       current: '31.6 aA',
       power: '6.44 akW',
@@ -171,7 +171,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 5,
       activeCycles: 5,
@@ -183,12 +183,12 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 6', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 6',
       memo: false,
       memoText: ``,
       operation: 'balance',
-      status: 'success',
-      statusLabel: '정상',
+      status: 'warning',
+      statusLabel: '경고',
       voltage: '203.9 aV',
       current: '31.6 aA',
       power: '6.44 akW',
@@ -196,7 +196,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 4,
       activeCycles: 4,
@@ -208,12 +208,12 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
       operation: 'chargemap',
-      status: 'success2',
-      statusLabel: '정상',
+      status: 'danger',
+      statusLabel: '위험',
       voltage: '203.9 aV',
       current: '31.6 aA',
       power: '6.44 akW',
@@ -221,7 +221,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,
@@ -233,11 +233,11 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
       operation: 'chargemap',
-      status: 'success2',
+      status: 'normal',
       statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -246,7 +246,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,
@@ -258,11 +258,11 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
       operation: 'chargemap',
-      status: 'success2',
+      status: 'normal',
       statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -271,7 +271,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,
@@ -283,11 +283,11 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
       operation: 'chargemap',
-      status: 'success2',
+      status: 'normal',
       statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -296,7 +296,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,
@@ -316,7 +316,7 @@ export default function DashboardPack() {
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
       operation: 'charge',
-      status: 'success',
+      status: 'normal',
       statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -325,7 +325,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,
@@ -337,7 +337,7 @@ export default function DashboardPack() {
       y: 2,
       title: 'EQ-01',
       check: true,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
@@ -351,7 +351,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 2,
       activeCycles: 2,
@@ -363,12 +363,12 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
       [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우`,
       operation: 'rest',
-      status: 'complete',
+      status: 'completion',
       statusLabel: '완료',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -377,7 +377,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 2,
       activeCycles: 2,
@@ -389,7 +389,7 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4',
       memo: false,
       memoText: ``,
       operation: 'rest-iso',
@@ -402,7 +402,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 1,
       activeCycles: 1,
@@ -414,11 +414,11 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
       operation: 'chargemap',
-      status: 'success2',
+      status: 'normal',
       statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -427,7 +427,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,
@@ -439,11 +439,11 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
-      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7', // 스케쥴
+      schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
       operation: 'chargemap',
-      status: 'success2',
+      status: 'normal',
       statusLabel: '정상',
       voltage: '203.9 aV',
       current: '31.6 aA',
@@ -452,7 +452,7 @@ export default function DashboardPack() {
       cycle: '4/4',
       rly: 'ON',
       dgv: '0.9',
-      temp: '33.1/30',
+      temp: '33.1℃/30℃',
       humidity: '40%/70%',
       cycles: 3,
       activeCycles: 3,

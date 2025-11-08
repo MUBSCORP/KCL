@@ -11,7 +11,7 @@ interface ChartProps {
 export default function ChartOperation({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const colors = ['#5B9BD5', '#ED7D31', '#C00000'];
+  const colors = ['#45D141', '#E93935', '#22B1F5', '#AAA'];
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -25,6 +25,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
         trigger: 'item',
         formatter: '{b}: {c} ({d}%)',
         confine: true,
+        textStyle: { fontSize: 10 },
       },
       legend: {
         orient: 'vertical',
@@ -38,23 +39,24 @@ export default function ChartOperation({ title, data }: ChartProps) {
           return `{a|${name}} {b${idx}|${data[idx].value}대}`;
         },
         textStyle: {
-          fontSize: 11,
-          rich: data.reduce(
-            (acc, d, i) => {
-              acc[`b${i}`] = {
-                fontSize: 11,
-                color: '#fff',
-                backgroundColor: colors[i],
-                borderRadius: 3,
-                padding: [4, 4, 2],
-                width: 25,
-                align: 'right',
-              };
-              return acc;
-            },
-            {} as Record<string, any>,
-          ),
-          a: { fontSize: 11 },
+          fontSize: 10,
+          rich: {
+            a: { width: 50 },
+            ...data.reduce(
+              (acc, d, i) => {
+                acc[`b${i}`] = {
+                  color: '#fff',
+                  backgroundColor: colors[i],
+                  borderRadius: 3,
+                  padding: [3, 4, 1],
+                  width: 25,
+                  align: 'right',
+                };
+                return acc;
+              },
+              {} as Record<string, any>,
+            ),
+          },
         } as any,
       } as echarts.LegendComponentOption,
 
@@ -62,11 +64,11 @@ export default function ChartOperation({ title, data }: ChartProps) {
         {
           name: title,
           type: 'pie',
-          radius: ['60%', '90%'],
+          radius: ['50%', '90%'],
           center: ['27%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: false,
+            show: true,
             position: 'inside',
             formatter: ({ data }: any) => `${data.value}`,
             fontSize: 12,
@@ -93,7 +95,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '17.5rem', height: '9.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '22rem', height: '10.4rem' }} />
     </div>
   );
 }

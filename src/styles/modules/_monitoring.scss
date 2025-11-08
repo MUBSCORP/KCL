@@ -59,49 +59,49 @@
               border-radius: 0.5rem;
               background-color: var(--co-gray);
               line-height: 1;
-              &[data-status='success'] {
-                background-color: var(--state-ongoing);
+              &[data-status='normal'] {
+                background-color: #45d141;
               }
-              &[data-status='success2'] {
-                background-color: #99d83a;
+              &[data-status='normal_chamber'] {
+                background-color: #90ff8d;
               }
               &[data-status='rest'] {
-                background-color: var(--co-gray);
+                background-color: #aaaaaa;
               }
-              &[data-status='complete'] {
-                background-color: var(--state-available);
+              &[data-status='completion'] {
+                background-color: #22b1f5;
                 animation: blinkComplete 1s infinite alternate;
               }
               &[data-status='warning'] {
-                background-color: var(--state-completion);
+                background-color: #ffcc00;
                 animation: blinkWarning 1s infinite alternate;
               }
-              &[data-status='error'] {
-                background-color: var(--state-stop);
-                animation: blinkError 1s infinite alternate;
+              &[data-status='danger'] {
+                background-color: #e93935;
+                animation: blinkDanger 1s infinite alternate;
               }
               @keyframes blinkComplete {
                 0% {
-                  background-color: #fff;
+                  background-color: transparent;
                 }
-                50% {
-                  background-color: var(--state-available);
+                30% {
+                  background-color: #22b1f5;
                 }
               }
               @keyframes blinkWarning {
                 0% {
-                  background-color: #fff;
+                  background-color: transparent;
                 }
-                50% {
-                  background-color: var(--state-completion);
+                30% {
+                  background-color: #ffcc00;
                 }
               }
-              @keyframes blinkError {
+              @keyframes blinkDanger {
                 0% {
-                  background-color: #fff;
+                  background-color: transparent;
                 }
-                50% {
-                  background-color: var(--state-stop);
+                30% {
+                  background-color: #e93935;
                 }
               }
             }
@@ -226,9 +226,9 @@
         }
         &[data-operation='rest'] {
           .inner {
-            background-color: rgba(255, 245, 204, 0.5);
+            background-color: rgba(255, 245, 204, 0.3);
             border: 1px solid var(--state-rest);
-            box-shadow: 0 0.3rem 0.8rem var(--state-rest);
+            box-shadow: 0 0.3rem 0.8rem #f2de92;
           }
           .bottomArea {
             .cycle li.isActive::before {
@@ -238,9 +238,9 @@
         }
         &[data-operation='rest-iso'] {
           .inner {
-            background-color: rgba(230, 255, 204, 0.5);
+            background-color: rgb(230, 255, 204, 0.1);
             border: 1px solid var(--state-rest-iso);
-            box-shadow: 0 0.3rem 0.8rem var(--state-rest-iso);
+            box-shadow: 0 0.3rem 0.8rem #c6e9a2;
           }
           .bottomArea {
             .cycle li.isActive::before {

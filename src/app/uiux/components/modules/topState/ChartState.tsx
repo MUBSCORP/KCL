@@ -23,6 +23,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
         trigger: 'item',
         formatter: '{b}: {c} ({d}%)',
         confine: true,
+        textStyle: { fontSize: 10 },
       },
       legend: {
         orient: 'vertical',
@@ -37,11 +38,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
         {
           name: '장비현황',
           type: 'pie',
-          radius: ['60%', '90%'],
-          center: ['21%', '50%'],
+          radius: ['50%', '90%'],
+          center: ['24%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: false,
+            show: true,
             position: 'inside',
             formatter: ({ data }: any) => `${data.value}`,
             fontSize: 12,
@@ -49,7 +50,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
           },
           labelLine: { show: false },
           data: data,
-          color: ['#ffd1cc', '#cce5f4', '#fff5cc', '#e6ffcc', '#e6d5ed', '#76f589', '#ffdcec'],
+          color: ['#AAAAAA', '#45D141', '#90FF8D', '#22B1F5', '#FFCC00', '#E93935'],
         },
       ],
     };
@@ -68,7 +69,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '25rem', height: '10rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '22rem', height: '10.4rem' }} />
     </div>
   );
 }

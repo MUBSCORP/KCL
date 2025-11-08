@@ -17,7 +17,7 @@ export default function ChartToday({ title, data }: ChartProps) {
     const chart = echarts.init(chartRef.current);
 
     const option: echarts.EChartsOption = {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, textStyle: { fontSize: 10 } },
       grid: {
         left: '3%',
         right: '10px',
@@ -61,7 +61,7 @@ export default function ChartToday({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '19.4rem', height: '10rem' }}></div>
+      <div className="chartWrap" ref={chartRef} style={{ width: '19.4rem', height: '10.8rem' }}></div>
     </div>
   );
 }

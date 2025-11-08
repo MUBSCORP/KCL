@@ -20,8 +20,9 @@ export default function ChartMonth({ title, data }: ChartProps) {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
+        textStyle: { fontSize: 10 },
         formatter: (params: any) => {
-          let result = `${params[0].name}<br/>`;
+          let result = `<strong style="color:#000;font-size:1.1rem;font-weight:500">${params[0].name}월</strong><br/>`;
           params.forEach((item: any) => {
             result += `<span style="display:inline-block;width:3.4rem;margin-right:4px;border-radius:10px;width:8px;height:8px;line-height:8px;background-color:${item.color}"></span>
               ${item.seriesName}: ${item.value}대<br/>`;
@@ -76,7 +77,7 @@ export default function ChartMonth({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '23.5rem', height: '10rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '23.5rem', height: '10.8rem' }} />
     </div>
   );
 }

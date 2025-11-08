@@ -12,14 +12,14 @@
   box-shadow: 0 0.3rem 0.6rem rgba(0, 0, 0, 0.15);
   > .left {
     min-width: 68.1rem;
-    @include flexArea($gap: 4rem, $align: flex-start);
+    @include flexArea($gap: 2.8rem, $align: flex-start);
     .chartCont {
       .tit {
         position: relative;
         font-size: 1.6rem;
         font-weight: 400;
         padding-left: 1rem;
-        margin-bottom: 1.6rem;
+        margin-bottom: 0.4rem;
         &::before {
           content: '';
           position: absolute;
@@ -69,7 +69,7 @@
     flex: 1;
     > .tit {
       @include flexArea($justify: space-between);
-      margin-bottom: 1.2rem;
+      margin-bottom: 0.4rem;
       > span {
         @include flexArea($gap: 0.8rem);
         font-size: 1.6rem;
@@ -95,7 +95,7 @@
       @include flexArea($justify: space-between, $align: stretch, $gap: 1rem);
       .listArea {
         min-width: 23rem;
-        height: 9.7rem;
+        height: 10rem;
         overflow: auto;
         ul {
           li {
@@ -108,7 +108,7 @@
               justify-content: flex-start;
               width: 100%;
               padding: 0 3.7rem 0 4.2rem;
-              height: 4.5rem;
+              height: 4.8rem;
               border: 1px solid var(--co-border);
               border-radius: 0.4rem;
               flex-direction: column;
@@ -196,8 +196,8 @@
       .resultArea {
         flex: 1;
         .innerCont {
-          @include flexArea($justify: space-between, $align: flex-start, $gap: 0.6rem, $direction: column);
-          height: 9.7rem;
+          @include flexArea($justify: space-between, $align: flex-start, $gap: 0.4rem, $direction: column);
+          height: 10rem;
           overflow: auto;
           background-color: var(--co-white);
           padding: 0.7rem 1rem;
@@ -264,7 +264,7 @@
         font-weight: 400;
         padding-left: 1rem;
         line-height: 1;
-        margin-bottom: 1.6rem;
+        margin-bottom: 0.4rem;
         &::before {
           content: '';
           position: absolute;

@@ -48,15 +48,16 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
         trigger: 'item',
         formatter: '{b}: {c}대 ({d}%)',
         confine: true,
+        textStyle: { fontSize: 10 },
       },
       series: [
         {
           name: '장비가동률',
           type: 'pie',
-          radius: ['60%', '90%'],
+          radius: ['50%', '90%'],
           avoidLabelOverlap: false,
           label: {
-            show: false,
+            show: true,
             position: 'inside',
             formatter: ({ data }: any) => `${data?.value ?? 0}대`,
             fontSize: 12,
@@ -86,7 +87,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     <div className="chartCont type2">
       <h3 className="tit">{title}</h3>
       <div className="innerWrap">
-        <div className="chartWrap" ref={containerRef} style={{ width: '9.4rem', height: '9.4rem' }} />
+        <div className="chartWrap" ref={containerRef} style={{ width: '9.4rem', height: '10.4rem' }} />
         <div className="legend">
           <p>
             <strong>{String(percent)}</strong>%

@@ -21,18 +21,18 @@ export default function DashboardPack() {
   // --- Chart Data ---
   const chartData = { total: 20, running: 15 };
   const chartData2 = [
-    { name: 'CHARGE', value: 20 },
-    { name: 'DISCHARGE', value: 15 },
-    { name: 'REST', value: 10 },
-    { name: 'REST(ISO)', value: 10 },
-    { name: 'PATTERN', value: 15 },
-    { name: 'BALANCE', value: 20 },
-    { name: 'CHARGEMAP', value: 10 },
+    { name: '대기', value: 20 },
+    { name: '정상(충방전기)', value: 15 },
+    { name: '정상(챔버)', value: 10 },
+    { name: '완료', value: 10 },
+    { name: '경고', value: 15 },
+    { name: '위험', value: 10 },
   ];
   const chartData3 = [
-    { name: '정상', value: 13 },
-    { name: '경고', value: 2 },
-    { name: '위험', value: 1 },
+    { name: '진행중', value: 13 },
+    { name: '정지', value: 2 },
+    { name: '완료', value: 1 },
+    { name: '사용가능', value: 1 },
   ];
   const chartData4 = [
     { name: '방전', value: 280 },
@@ -57,8 +57,8 @@ export default function DashboardPack() {
       check: true, // 체크표시
       ready: false, // '신규장비 업데이트 예정' 표시
       shutdown: true, // 테두리 점등
-      operation: 'ongoing', // 공정 ongoing, completion, available, stop
-      icon: 'success', // 아이콘 success, stay, error
+      operation: 'ongoing', // 공정: ongoing, completion, available, stop
+      icon: 'success', // 아이콘: success, stay, error
       temp1: '17℃', // 온도 1
       temp2: '25℃', // 온도 2
       ch1: 8, // 채널 1

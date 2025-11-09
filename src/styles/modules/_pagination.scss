@@ -1,0 +1,42 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
+aside.pagenation {
+  @include flexArea($gap: 0.3rem);
+  margin-top: 2rem;
+  button {
+    width: 1.8rem;
+    height: 1.8rem;
+    font-size: 1.4rem;
+    box-shadow: none;
+    &.btnStart {
+      background: url(../../assets/images/icon/pagin_s.png) no-repeat;
+      background-size: contain;
+    }
+    &.btnEnd {
+      background: url(../../assets/images/icon/pagin_e.png) no-repeat;
+      background-size: contain;
+    }
+    &.btnPrev {
+      background: url(../../assets/images/icon/pagin_p.png) no-repeat;
+      background-size: contain;
+      margin-right: 0.5rem;
+    }
+    &.btnNext {
+      background: url(../../assets/images/icon/pagin_n.png) no-repeat;
+      background-size: contain;
+      margin-left: 0.5rem;
+    }
+    &.MuiButton-contained {
+      font-weight: 700;
+      color: #003cff;
+    }
+    &:disabled {
+      opacity: 0.3;
+    }
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 0.2rem;
+    }
+  }
+}

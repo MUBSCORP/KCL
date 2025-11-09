@@ -55,6 +55,7 @@ export default function DashboardPack() {
       y: 1, // y 좌표
       title: '1F-001B', // 타이틀
       check: true, // 체크표시
+      shutdown: true, // 테두리 점등
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1', // 스케줄
       memo: true, // 모달
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
@@ -81,6 +82,7 @@ export default function DashboardPack() {
       y: 1,
       title: 'EQ-01',
       check: true,
+      shutdown: true,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
@@ -107,6 +109,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
@@ -133,6 +136,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4',
       memo: false,
       memoText: ``,
@@ -158,6 +162,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 5',
       memo: false,
       memoText: ``,
@@ -183,6 +188,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 6',
       memo: false,
       memoText: ``,
@@ -208,6 +214,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
@@ -233,6 +240,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
@@ -258,6 +266,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
@@ -283,6 +292,7 @@ export default function DashboardPack() {
       y: 1,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
@@ -311,6 +321,7 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: true,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 1',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
@@ -337,6 +348,7 @@ export default function DashboardPack() {
       y: 2,
       title: 'EQ-01',
       check: true,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 2',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
@@ -363,6 +375,7 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 3',
       memo: true,
       memoText: `비고: 00만 km RPT 측정 후 내구 재개
@@ -389,6 +402,7 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 4',
       memo: false,
       memoText: ``,
@@ -414,6 +428,7 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,
@@ -439,6 +454,7 @@ export default function DashboardPack() {
       y: 2,
       title: '1F-001B',
       check: false,
+      shutdown: false,
       schedule: 'AA PE EV 항속형 PV 충방전싸이클 (가속)_241220 7',
       memo: false,
       memoText: ``,

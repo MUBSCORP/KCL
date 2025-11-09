@@ -12,6 +12,7 @@ interface ListItem {
   y: number;
   title: string;
   check: boolean;
+  shutdown: boolean;
   schedule: string;
   memo: boolean;
   memoText: string;
@@ -123,6 +124,7 @@ export default function List({ listData }: ListProps) {
               key={item.id}
               data-operation={item.operation}
               data-checked={item.check ? 'checked' : undefined}
+              data-shutdown={item.shutdown ? 'shutdown' : undefined}
               style={{
                 left: `${left}px`,
                 top: `${top}px`,

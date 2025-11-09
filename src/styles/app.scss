@@ -6,8 +6,14 @@
 // layout
 @use 'layout/header' as *;
 @use 'layout/layout' as *;
+@use 'layout/sub' as *;
 
 // modules
+@use 'modules/pagination' as *;
+@use 'modules/tab' as *;
+@use 'modules/form' as *;
+@use 'modules/filter' as *;
+@use 'modules/grid' as *;
 @use 'modules/dialog' as *;
 @use 'modules/topState' as *;
 @use 'modules/topFilter' as *;

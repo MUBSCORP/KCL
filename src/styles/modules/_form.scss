@@ -1,0 +1,179 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
+// selct
+.MuiSelect-root {
+  .MuiSelect-select {
+    font-size: 1.4rem;
+    width: 8rem;
+    background: #fff url(../../assets/images/icon/select.png) no-repeat;
+    background-position: center right 1rem;
+    background-size: 0.8rem 0.8rem;
+    border: 1px solid #aaa;
+    border-radius: 0.5rem;
+    padding: 0.7rem 3.2rem 0.7rem 1rem;
+    box-shadow: 0.3rem 0.3rem 0.3rem rgba(0, 0, 0, 0.15);
+    svg {
+      display: none;
+    }
+  }
+}
+.MuiMenu-paper {
+  background-color: transparent !important;
+  box-shadow: none;
+  overflow: visible;
+  > ul {
+    background-color: #fff;
+    border: 1px solid #aaa;
+    border-radius: 0.5rem;
+    margin-top: 0.4rem;
+    box-shadow: 0.3rem 0.3rem 0.3rem rgba(0, 0, 0, 0.15);
+    li {
+      color: #000;
+      font-size: 1.4rem;
+      padding: 0.3rem 1rem;
+    }
+  }
+}
+
+// input
+.MuiFormLabel-root {
+  color: #999;
+  font-size: 1.4rem;
+  top: -0.4rem;
+  &.Mui-focused,
+  &.MuiFormLabel-filled {
+    display: none;
+  }
+}
+.MuiInputBase-root input {
+  background-color: #fff;
+  border: 1px solid #aaa;
+  border-radius: 0.5rem;
+  margin-top: 0.4rem;
+  box-shadow: 0.3rem 0.3rem 0.3rem rgba(0, 0, 0, 0.15);
+  color: #000;
+  font-size: 1.4rem;
+  padding: 0.4rem 1rem;
+  height: 3rem;
+  margin: auto;
+  button {
+    width: 1.6rem;
+    height: 1.6rem;
+    background: url(../../assets/images/icon/cal.png) center no-repeat;
+    background-size: contain;
+  }
+  svg {
+    display: none;
+  }
+}
+
+// datePicker
+.datePicker {
+  .MuiFormLabel-root {
+    color: #000;
+  }
+  .MuiPickersInputBase-root {
+    width: 13rem;
+    background-color: #fff;
+    border: 1px solid #aaa;
+    border-radius: 0.5rem;
+    margin-top: 0.4rem;
+    box-shadow: 0.3rem 0.3rem 0.3rem rgba(0, 0, 0, 0.15);
+    color: #000;
+    font-size: 1.4rem;
+    padding: 0.3rem 1rem;
+    margin: auto;
+    button {
+      width: 1.6rem;
+      height: 1.6rem;
+      background: url(../../assets/images/icon/cal.png) center no-repeat;
+      background-size: contain;
+    }
+    svg {
+      display: none;
+    }
+  }
+}
+
+.MuiPickersLayout-root {
+  border: 1px solid #aaa;
+  border-radius: 0.5rem;
+  font-size: 1.4rem;
+  // width: 26rem;
+  .MuiDateCalendar-root {
+    // width: 100%;
+    height: auto;
+    .MuiPickersCalendarHeader-root {
+      @include flexArea($width: 100%);
+      position: relative;
+      border-bottom: 1px dashed #ccc;
+      > div {
+        font-size: 1.4rem;
+      }
+      .MuiPickersArrowSwitcher-root {
+        button {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          &:first-child {
+            left: 1rem;
+          }
+          &:last-child {
+            right: 1rem;
+          }
+        }
+      }
+    }
+    .MuiPickersFadeTransitionGroup-root {
+      .MuiDayCalendar-header {
+        width: 100%;
+        padding: 0 1rem;
+        justify-content: space-between;
+        > span {
+          font-size: 1.4rem;
+          color: #000;
+          &:first-child {
+            color: var(--co-red);
+          }
+          &:last-child {
+            color: var(--co-blue);
+          }
+        }
+      }
+      .MuiPickersSlideTransition-root {
+        > div {
+          @include flexArea($width: 100%, $wrap: wrap);
+          padding: 0 1rem;
+          .MuiDayCalendar-weekContainer {
+            width: 100%;
+            .MuiPickersDay-root {
+              width: 14.2857%;
+              border-radius: 0.6rem;
+              &:first-child {
+                color: var(--co-red);
+              }
+              &:last-child {
+                color: var(--co-blue);
+              }
+              &.MuiPickersDay-today {
+                background-color: #f1f1f1;
+              }
+              &.Mui-disabled {
+                opacity: 0.2;
+              }
+              &.Mui-selected {
+                color: #fff;
+                background-color: var(--co-primary);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.dateRangeForm {
+  @include flexArea($gap: 0.6rem);
+}

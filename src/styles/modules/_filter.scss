@@ -1,0 +1,39 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
+.filterCont {
+  margin-bottom: 1rem;
+  .innerWrap {
+    @include flexArea($gap: 1.6rem, $width: 100%, $justify: flex-start);
+    padding: 2rem;
+    border: 1px solid #ccc;
+    border-radius: 0.6rem;
+    background-color: #f8f8f8;
+    .formCont {
+      @include flexArea($gap: 0.6rem);
+      .tit {
+        font-size: 1.4rem;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+    }
+    .btnSch {
+      background-color: #111;
+      font-size: 1.2rem;
+      color: #fff;
+      height: 3rem;
+      padding: 0 0.8rem;
+      border-radius: 0.6rem;
+      gap: 0.6rem;
+      span {
+        white-space: nowrap;
+      }
+      i {
+        width: 1.4rem;
+        height: 1.4rem;
+        background: url(../../assets/images/icon/search_w.png) center no-repeat;
+        background-size: contain;
+      }
+    }
+  }
+}

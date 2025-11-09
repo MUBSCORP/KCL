@@ -16,7 +16,7 @@
     .chartCont {
       .tit {
         position: relative;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 400;
         padding-left: 1rem;
         margin-bottom: 0.4rem;
@@ -26,7 +26,8 @@
           width: 0.4rem;
           height: 1.2rem;
           left: 0;
-          top: 0.4rem;
+          top: 50%;
+          transform: translateY(-50%);
           border-radius: 10rem;
           background-color: #666;
         }
@@ -72,7 +73,7 @@
       margin-bottom: 0.4rem;
       > span {
         @include flexArea($gap: 0.8rem);
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 400;
         i {
           display: block;
@@ -260,7 +261,7 @@
     .chartCont {
       .tit {
         position: relative;
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 400;
         padding-left: 1rem;
         line-height: 1;

@@ -7,4 +7,10 @@ body {
   font-size: 1.4rem;
   line-height: 1.5;
   font-family: 'Pretendard GOV', sans-serif;
+  .container {
+    min-width: var(--min-width);
+  }
+  &[data-layout='subpage'] {
+    background-color: #fff;
+  }
 }

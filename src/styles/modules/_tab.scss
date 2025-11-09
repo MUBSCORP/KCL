@@ -1,0 +1,38 @@
+@use 'common/variables' as *;
+@use 'common/mixins' as *;
+
+.tabCont {
+  min-height: auto;
+  margin-bottom: 2rem;
+  .MuiTabs-indicator {
+    display: none !important;
+  }
+  .MuiTabs-list {
+    gap: 0.2rem;
+    border-bottom: 1px solid #000;
+    .tabBtn {
+      position: relative;
+      font-size: 1.6rem;
+      font-weight: 400;
+      height: 3.7rem;
+      min-height: auto;
+      line-height: 1;
+      color: #555;
+      background-color: #f1f1f1;
+      border: 1px solid #bbb;
+      border-bottom-color: #000;
+      border-radius: 1rem 1rem 0 0;
+      padding: 0 4rem;
+      margin-bottom: -1px;
+      z-index: 1;
+      @include trans;
+      &.Mui-selected {
+        background-color: #fff;
+        border-color: #000;
+        color: #000;
+        font-weight: 500;
+        border-bottom-color: #fff;
+      }
+    }
+  }
+}

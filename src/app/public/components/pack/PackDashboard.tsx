@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { api } from '@/services/apiClient';
 
@@ -22,33 +22,17 @@ import titleIcon from '@/assets/images/icon/detail.png';
 import List from '@/app/public/components/modules/monitoring/List';
 
 type MonitoringItem = {
-  id: number;
-  title: string;
-  check: boolean;
-  schedule: string;
-  memo: boolean;
-  memoText: string;
-  operation: string;
-  status: string;
-  statusLabel: string;
-  voltage: string;
-  current: string;
-  power: string;
-  step: string;
-  cycle: string;
-  rly: string;
-  dgv: string;
-  temp: string;
-  humidity: string;
-  cycles: number;
-  activeCycles: number;
+  id: number; title: string; check: boolean; schedule: string;
+  memo: boolean; memoText: string;
+  operation: string; status: string; statusLabel: string;
+  voltage: string; current: string; power: string;
+  step: string; cycle: string; rly: string; dgv: string;
+  temp: string; humidity: string; cycles: number; activeCycles: number;
   time: string;
 
-  // UI/UX 그리드 배치용 (백엔드에서 내려오도록)
+  // 위치/식별자 (이미 있으면 그대로)
   x?: number;
   y?: number;
-
-  // 메모 API 식별자
   eqpid?: string;
   channelIndex?: number;
 };
@@ -63,6 +47,10 @@ export default function PackDashboard() {
   );
   const loading = !listData && !error;
 
+  // 🔍 검색어 상태
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
+
+  // --- 차트 계산 (기존과 동일) ---
   const { runningChart, opDistChart, statusDistChart, todayChart, monthChart } = useMemo(() => {
     const today = [{ name: '방전', value: 0 }, { name: '충전', value: 0 }];
     const month: never[] = [];
@@ -117,6 +105,33 @@ export default function PackDashboard() {
     };
   }, [listData]);
 
+  // --- ✅ 검색어 기반으로 check 플래그 덮어쓰기 ---
+  const displayList: MonitoringItem[] = useMemo(() => {
+    const src = listData ?? [];
+    if (!searchKeywords.length) {
+      return src.map(item => ({ ...item, check: false }));
+    }
+
+    const keywords = searchKeywords
+      .map(k => k.trim().toLowerCase())
+      .filter(k => k.length > 0);
+
+    if (!keywords.length) {
+      return src.map(item => ({ ...item, check: false }));
+    }
+
+    return src.map(item => {
+      const title = item.title?.toLowerCase() ?? '';
+      const eqpid = item.eqpid?.toLowerCase() ?? '';
+
+      const match = keywords.some(kw =>
+        title.includes(kw) || eqpid.includes(kw)
+      );
+
+      return { ...item, check: match };
+    });
+  }, [listData, searchKeywords]);
+
   return (
     <>
       {/* topState */}
@@ -146,7 +161,8 @@ export default function PackDashboard() {
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세 (PACK)" icon={titleIcon} />
-          <SearchArea />
+          {/* 🔗 검색어 배열을 직접 받도록 연결 */}
+          <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right"><ColorChip /></div>
       </section>
@@ -155,8 +171,8 @@ export default function PackDashboard() {
       <section className="monitoring">
         <h2 className="ir">모니터링 화면</h2>
         <div className="innerWrapper">
-          {/* 🔴 여기서 undefined 방지 */}
-          <List listData={listData ?? []} />
+          {/* 🔵 체크는 search 기준으로만 */}
+          <List listData={displayList} />
         </div>
       </section>
     </>

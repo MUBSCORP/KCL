@@ -1,8 +1,8 @@
 'use client';
 
-import HeaderLogoArea from '@/app/public/components/layout/HeaderLogoArea';
-import HeaderTabArea from '@/app/public/components/layout/HeaderTabArea';
-import HeaderUtilArea from '@/app/public/components/layout/HeaderUtilArea';
+import HeaderLogoArea from '@/app/uiux/components/layout/HeaderLogoArea';
+import HeaderTabArea from '@/app/uiux/components/layout/HeaderTabArea';
+import HeaderUtilArea from '@/app/uiux/components/layout/HeaderUtilArea';
 
 export default function Header() {
     return (

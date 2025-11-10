@@ -1,17 +1,17 @@
 'use client';
 
 // topState
-import ChartRunning from '@/app/uiux/components/modules/topState/ChartRunning';
-import ChartState from '@/app/uiux/components/modules/topState/ChartState';
-import ChartOperation from '@/app/uiux/components/modules/topState/ChartOperation';
-import ChartToday from '@/app/uiux/components/modules/topState/ChartToday';
-import ChartMonth from '@/app/uiux/components/modules/topState/ChartMonth';
-import TopStateCenter from '@/app/uiux/components/modules/topState/TopStateCenter';
+import ChartRunning from '@/app/public/components/modules/topState/ChartRunning';
+import ChartState from '@/app/public/components/modules/topState/ChartState';
+import ChartOperation from '@/app/public/components/modules/topState/ChartOperation';
+import ChartToday from '@/app/public/components/modules/topState/ChartToday';
+import ChartMonth from '@/app/public/components/modules/topState/ChartMonth';
+import TopStateCenter from '@/app/public/components/modules/topState/TopStateCenter';
 
 // topFilter
-import ColorChipType2 from '@/app/uiux/components/modules/topFilter/ColorChipType2';
-import SearchArea from '@/app/uiux/components/modules/topFilter/SearchArea';
-import PageTitle from '@/app/uiux/components/modules/PageTitle';
+import ColorChipType2 from '@/app/public/components/modules/topFilter/ColorChipType2';
+import SearchArea from '@/app/public/components/modules/topFilter/SearchArea';
+import PageTitle from '@/app/public/components/modules/PageTitle';
 import titleIcon from '@/assets/images/icon/detail3.png';
 
 // monitoring
@@ -1503,7 +1503,7 @@ export default function DashboardPack() {
           <ChartOperation title="장비가동현황" data={chartData3} />
         </div>
         <div className="center">
-          <TopStateCenter />
+          <TopStateCenter equipType="CELL" />
         </div>
         <div className="right">
           <ChartToday title="오늘 전력량" data={chartData4} />

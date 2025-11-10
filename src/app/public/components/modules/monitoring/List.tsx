@@ -16,8 +16,11 @@ import CloseIcon from '@mui/icons-material/Close';
 
 interface ListItem {
   id: number;
+
+  // 위치
   x?: number;
   y?: number;
+
   title: string;
   check: boolean;
   schedule: string;
@@ -38,9 +41,14 @@ interface ListItem {
   cycles: number;
   activeCycles: number;
   time: string;
+
+  // 퍼블 쪽에서 추가된 필드 (필요 시 사용)
   memoTotal?: string;
 
-  // 메모 API 식별자
+  // 🔹 퍼블 신규 속성: 셧다운 여부 (테두리 점등 등 CSS용)
+  shutdown?: boolean;
+
+  // 메모 API 식별자 (백엔드 연동용)
   eqpid?: string;
   channelIndex?: number;
 }
@@ -54,7 +62,7 @@ export default function List({ listData }: ListProps) {
   const [selectedItem, setSelectedItem] = React.useState<ListItem | null>(null);
   const [selectedMemo, setSelectedMemo] = React.useState<ListItem | null>(null);
 
-  // 텍스트 & 저장 상태
+  // 메모 textarea 값 & 저장 상태
   const [text, setText] = React.useState<string>('');
   const [saving, setSaving] = React.useState(false);
 
@@ -68,7 +76,7 @@ export default function List({ listData }: ListProps) {
     setSnOpen(true);
   };
 
-  // 로컬 오버레이 상태: id → { memo, memoText }
+  // 메모 UI 즉시 반영용: id → { memo, memoText }
   const [overrides, setOverrides] = React.useState<
     Record<number, { memo: boolean; memoText: string }>
   >({});
@@ -101,7 +109,7 @@ export default function List({ listData }: ListProps) {
     return ov ? { ...item, memo: ov.memo, memoText: ov.memoText } : item;
   };
 
-  // 공통: 식별자 확인
+  // 공통: 메모 API 식별자 확인
   const ensureIds = (
     item: ListItem | null,
   ): { eqpid: string; channel: number } | null => {
@@ -129,7 +137,7 @@ export default function List({ listData }: ListProps) {
     setText('');
   };
 
-  // --- 저장 (백엔드에서 upsert: 등록/수정 통합) ---
+  // --- 메모 저장 (백엔드 upsert) ---
   const handleSave = async () => {
     const ids = ensureIds(selectedItem);
     if (!ids) return;
@@ -171,7 +179,7 @@ export default function List({ listData }: ListProps) {
     }
   };
 
-  // --- 삭제 ---
+  // --- 메모 삭제 ---
   const handleDelete = async () => {
     const ids = ensureIds(selectedItem);
     if (!ids) return;
@@ -218,6 +226,8 @@ export default function List({ listData }: ListProps) {
               key={item.id}
               data-operation={item.operation}
               data-checked={item.check ? 'checked' : undefined}
+              // 🔹 퍼블 디자인 반영: shutdown 상태용 data-shutdown
+              data-shutdown={item.shutdown ? 'shutdown' : undefined}
               style={{
                 left: `${left}px`,
                 top: `${top}px`,
@@ -225,7 +235,7 @@ export default function List({ listData }: ListProps) {
             >
               <div className="inner">
                 <div className="topArea">
-                  {/* ✅ 클릭으로만 메모 모달 오픈 */}
+                  {/* 제목 클릭 시 메모 모달 오픈 */}
                   <h3 className="tit" onClick={() => handleClickOpen(item)}>
                     {item.title}
                   </h3>
@@ -317,7 +327,7 @@ export default function List({ listData }: ListProps) {
         })}
       </ul>
 
-      {/* 클릭 모달 - 항상 편집 가능, 저장/삭제만 사용 */}
+      {/* 클릭 모달 - 항상 편집 가능, 저장/삭제 버튼 사용 */}
       <Dialog
         className="dialogCont"
         open={open}

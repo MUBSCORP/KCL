@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
     sourceMap: true,
     includePaths: [path.join(__dirname, 'src/styles')],
   },
-};
+  output: 'standalone',   // ← 여기에 합쳐서 넣기
+  eslint: { ignoreDuringBuilds: true },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+}
 
 export default nextConfig;

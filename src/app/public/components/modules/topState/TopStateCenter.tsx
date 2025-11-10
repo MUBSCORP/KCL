@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@mui/material';
+import { useRouter } from 'next/navigation';
 import TopStateCenterList, { AlarmItem } from './TopStateCenterList';
 import TopStateCenterResult from './TopStateCenterResult';
 
@@ -14,11 +15,27 @@ interface TopStateCenterProps {
 
 export default function TopStateCenter({ equipType, onMoreClick }: TopStateCenterProps) {
   const [selected, setSelected] = useState<AlarmItem | null>(null);
+  const router = useRouter();
 
-  // (권장) 타입 변경 시 선택 초기화 → 리스트의 autoSelectFirst가 다시 첫 항목을 선택
+  // 🔹 이전 equipType 기억해서 "실제 변경"될 때만 선택 초기화
+  const prevTypeRef = useRef<EquipType | null>(null);
   useEffect(() => {
-    setSelected(null);
+    if (prevTypeRef.current !== null && prevTypeRef.current !== equipType) {
+      // PACK ↔ CELL 타입이 바뀔 때만 선택 초기화
+      setSelected(null);
+    }
+    prevTypeRef.current = equipType;
   }, [equipType]);
+
+  const handleMoreClick = () => {
+    if (onMoreClick) {
+      // 부모에서 커스텀 동작을 지정한 경우
+      onMoreClick();
+      return;
+    }
+    // 기본: 이벤트 로그 상세 페이지로 이동 (equipType 쿼리 같이 전달)
+    router.push(`/public/event-log?equipType=${equipType}`);
+  };
 
   return (
     <>
@@ -27,16 +44,19 @@ export default function TopStateCenter({ equipType, onMoreClick }: TopStateCente
           <i />
           실시간 이벤트 로그 & 알림
         </span>
-        <Button className="customBtn" onClick={onMoreClick}>more</Button>
+        <Button className="customBtn" onClick={handleMoreClick}>
+          more
+        </Button>
       </h3>
       <div className="innerWrap">
         <TopStateCenterList
           equipType={equipType}
           onSelect={setSelected}
           selectedId={selected?.id ?? null}
-          autoSelectFirst={true}   // ✅ 첫 항목 자동 선택 (리스트에서 처리)
+          autoSelectFirst={true}     // ✅ 첫 항목 자동 선택
+          onEmpty={() => setSelected(null)} // ✅ 리스트 비면 상세도 비우기
         />
-        {/* ✅ 전체 item 전달 (desc/조치 등은 Result 내부에서 item에서 꺼내 사용) */}
+        {/* 선택된 알림이 있을 때만 우측 상세 표시 */}
         {selected ? <TopStateCenterResult item={selected} /> : null}
       </div>
     </>

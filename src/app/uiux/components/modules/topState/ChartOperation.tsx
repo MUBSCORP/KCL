@@ -22,6 +22,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
 
     const option: echarts.EChartsOption = {
       tooltip: {
+        show: false,
         trigger: 'item',
         formatter: '{b}: {c} ({d}%)',
         confine: true,
@@ -68,11 +69,18 @@ export default function ChartOperation({ title, data }: ChartProps) {
           center: ['27%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: true,
+            show: false,
             position: 'inside',
             formatter: ({ data }: any) => `${data.value}`,
             fontSize: 12,
             fontWeight: 'bold',
+          },
+          emphasis: {
+            label: {
+              show: true, // hover 시 표시
+              fontSize: 12,
+              fontWeight: 'bold',
+            },
           },
           labelLine: { show: false },
           data: data,

@@ -125,6 +125,7 @@ export default function List({ listData }: ListProps) {
               data-operation={item.operation}
               data-checked={item.check ? 'checked' : undefined}
               data-shutdown={item.shutdown ? 'shutdown' : undefined}
+              data-status={item.status}
               style={{
                 left: `${left}px`,
                 top: `${top}px`,
@@ -171,18 +172,20 @@ export default function List({ listData }: ListProps) {
                     <dd>{item.rly}</dd>
                   </dl>
                   <dl>
-                    <dt>DGV</dt>
+                    <dt>
+                      챔버<small>현재/설정</small>
+                    </dt>
                     <dd>{item.dgv}</dd>
                   </dl>
                   <dl>
                     <dt>
-                      온도<small>현재/설정</small>
+                      칠러<small>현재/유량</small>
                     </dt>
                     <dd>{item.temp}</dd>
                   </dl>
                   <dl>
                     <dt>
-                      습도<small>현재/한계</small>
+                      습도<small>현재/설정</small>
                     </dt>
                     <dd>{item.humidity}</dd>
                   </dl>

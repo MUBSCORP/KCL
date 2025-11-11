@@ -45,6 +45,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
 
     const option: echarts.EChartsOption = {
       tooltip: {
+        show: false,
         trigger: 'item',
         formatter: '{b}: {c}대 ({d}%)',
         confine: true,
@@ -57,11 +58,18 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
           radius: ['50%', '90%'],
           avoidLabelOverlap: false,
           label: {
-            show: true,
+            show: false,
             position: 'inside',
-            formatter: ({ data }: any) => `${data?.value ?? 0}대`,
+            formatter: ({ data }: any) => `${data?.value ?? 0}`,
             fontSize: 12,
             fontWeight: 'bold',
+          },
+          emphasis: {
+            label: {
+              show: true, // hover 시 표시
+              fontSize: 14,
+              fontWeight: 'bold',
+            },
           },
           labelLine: { show: false },
           data: [

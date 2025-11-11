@@ -52,34 +52,47 @@
             }
             .status {
               color: var(--co-white);
-              font-size: 1.4rem;
+              font-size: 1.2rem;
               font-weight: 500;
               height: 2.2rem;
-              padding: 0 0.6rem;
+              padding: 0 0.4rem;
               border-radius: 0.5rem;
               background-color: var(--co-gray);
               line-height: 1;
-              &[data-status='normal'] {
-                background-color: #45d141;
-              }
-              &[data-status='normal_chamber'] {
-                background-color: #90ff8d;
-              }
               &[data-status='rest'] {
-                background-color: #aaaaaa;
+                background-color: var(--state-rest);
               }
-              &[data-status='completion'] {
-                background-color: #22b1f5;
-                // animation: blinkComplete 1s infinite alternate;
+              &[data-status='ongoing'] {
+                background-color: var(--state-ongoing);
               }
-              &[data-status='warning'] {
-                background-color: #ffcc00;
-                // animation: blinkWarning 1s infinite alternate;
+              &[data-status='stop'] {
+                background-color: var(--state-stop);
+                color: #111;
               }
-              &[data-status='danger'] {
-                background-color: #e93935;
-                // animation: blinkDanger 1s infinite alternate;
+              &[data-status='alarm'] {
+                background-color: var(--state-alarm);
               }
+              // &[data-status='normal'] {
+              //   background-color: #45d141;
+              // }
+              // &[data-status='normal_chamber'] {
+              //   background-color: #90ff8d;
+              // }
+              // &[data-status='rest'] {
+              //   background-color: #22b1f5;
+              // }
+              // &[data-status='completion'] {
+              //   background-color: #22b1f5;
+              //   // animation: blinkComplete 1s infinite alternate;
+              // }
+              // &[data-status='warning'] {
+              //   background-color: #ffcc00;
+              //   // animation: blinkWarning 1s infinite alternate;
+              // }
+              // &[data-status='danger'] {
+              //   background-color: #e93935;
+              //   // animation: blinkDanger 1s infinite alternate;
+              // }
               @keyframes blinkComplete {
                 0% {
                   background-color: transparent;
@@ -201,89 +214,53 @@
           }
         }
 
-        &[data-operation='charge'] {
+        &[data-status='rest'] {
           .inner {
-            background-color: rgba(255, 209, 204, 0.5);
-            border: 1px solid var(--state-charge);
-            box-shadow: 0 0.3rem 0.8rem var(--state-charge);
-          }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #ed4c3a;
-            }
-          }
-        }
-        &[data-operation='discharge'] {
-          .inner {
-            background-color: rgba(204, 229, 244, 0.5);
-            border: 1px solid var(--state-discharge);
-            box-shadow: 0 0.3rem 0.8rem var(--state-discharge);
-          }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #346a8c;
-            }
-          }
-        }
-        &[data-operation='rest'] {
-          .inner {
-            background-color: rgba(255, 245, 204, 0.3);
+            background-color: #edf7ff;
             border: 1px solid var(--state-rest);
-            box-shadow: 0 0.3rem 0.8rem #f2de92;
+            box-shadow: 0 0.3rem 0.8rem var(--state-rest);
           }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #e2bc22;
-            }
-          }
+          // .bottomArea {
+          //   .cycle li.isActive::before {
+          //     background-color: #ed4c3a;
+          //   }
+          // }
         }
-        &[data-operation='rest-iso'] {
+        &[data-status='ongoing'] {
           .inner {
-            background-color: rgb(230, 255, 204, 0.1);
-            border: 1px solid var(--state-rest-iso);
-            box-shadow: 0 0.3rem 0.8rem #c6e9a2;
+            background-color: #fafff5;
+            border: 1px solid var(--state-ongoing);
+            box-shadow: 0 0.3rem 0.8rem var(--state-ongoing);
           }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #81e01c;
-            }
-          }
+          // .bottomArea {
+          //   .cycle li.isActive::before {
+          //     background-color: #ed4c3a;
+          //   }
+          // }
         }
-        &[data-operation='pattern'] {
+        &[data-status='stop'] {
           .inner {
-            background-color: rgba(230, 213, 237, 0.5);
-            border: 1px solid var(--state-pattern);
-            box-shadow: 0 0.3rem 0.8rem var(--state-pattern);
+            background-color: #fffdef;
+            border: 1px solid var(--state-stop);
+            box-shadow: 0 0.3rem 0.8rem var(--state-stop);
           }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #aa37d7;
-            }
-          }
+          // .bottomArea {
+          //   .cycle li.isActive::before {
+          //     background-color: #ed4c3a;
+          //   }
+          // }
         }
-        &[data-operation='balance'] {
+        &[data-status='alarm'] {
           .inner {
-            background-color: rgba(118, 245, 137, 0.2);
-            border: 1px solid var(--state-balance);
-            box-shadow: 0 0.3rem 0.8rem var(--state-balance);
+            background-color: #ffebeb;
+            border: 1px solid var(--state-alarm);
+            box-shadow: 0 0.3rem 0.8rem var(--state-alarm);
           }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #2dc243;
-            }
-          }
-        }
-        &[data-operation='chargemap'] {
-          .inner {
-            background-color: rgba(255, 220, 236, 0.5);
-            border: 1px solid var(--state-chargemap);
-            box-shadow: 0 0.3rem 0.8rem var(--state-chargemap);
-          }
-          .bottomArea {
-            .cycle li.isActive::before {
-              background-color: #df3481;
-            }
-          }
+          // .bottomArea {
+          //   .cycle li.isActive::before {
+          //     background-color: #ed4c3a;
+          //   }
+          // }
         }
 
         &[data-shutdown='shutdown'] {
@@ -291,13 +268,41 @@
             &::after {
               content: '';
               position: absolute;
-              width: calc(100% - 1rem);
+              width: calc(100% - 0.6rem);
               height: calc(100% - 4rem);
               border-radius: 0.8rem;
-              border: 1px solid var(--co-white);
-              left: 0.5rem;
+              border: 3px solid var(--co-white);
+              left: 0.3rem;
               top: 0rem;
-              animation: blinkShutdown 1s infinite alternate;
+              animation: blinkShutdown 0.5s infinite alternate;
+            }
+          }
+          &[data-status='rest'] {
+            .inner {
+              &::after {
+                border-color: var(--state-rest);
+              }
+            }
+          }
+          &[data-status='ongoing'] {
+            .inner {
+              &::after {
+                border-color: var(--state-ongoing);
+              }
+            }
+          }
+          &[data-status='stop'] {
+            .inner {
+              &::after {
+                border-color: var(--state-stop);
+              }
+            }
+          }
+          &[data-status='alarm'] {
+            .inner {
+              &::after {
+                border-color: var(--state-alarm);
+              }
             }
           }
           @keyframes blinkShutdown {
@@ -371,7 +376,7 @@
                   color: var(--state-ongoing);
                 }
                 &:nth-child(2) {
-                  color: var(--state-stop);
+                  color: var(--state-alarm);
                 }
                 &:nth-child(3) {
                   color: var(--state-completion);
@@ -434,6 +439,7 @@
           }
           &[data-operation='stop'] {
             .inner {
+              border-width: 0.3rem;
               background-color: rgba(233, 57, 53, 0.05);
               border-color: #e93935;
               box-shadow: 0 0.4rem 0.8rem rgba(233, 57, 53, 0.2);
@@ -482,8 +488,9 @@
               &::after {
                 width: calc(100% + 0.4rem);
                 height: calc(100% + 0.4rem);
-                border-width: 0.2rem;
+                border-width: 0.3rem;
                 border-radius: 0.6rem;
+                border-color: var(--state-ongoing);
                 left: -0.2rem;
                 top: -0.2rem;
               }

@@ -7,6 +7,7 @@ body {
   font-size: 1.4rem;
   line-height: 1.5;
   font-family: 'Pretendard GOV', sans-serif;
+  font-feature-settings: 'ss06' 1;
   .container {
     min-width: var(--min-width);
   }

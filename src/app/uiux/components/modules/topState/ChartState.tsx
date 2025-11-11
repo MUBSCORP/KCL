@@ -20,6 +20,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
 
     const option: echarts.EChartsOption = {
       tooltip: {
+        show: false,
         trigger: 'item',
         formatter: '{b}: {c} ({d}%)',
         confine: true,
@@ -42,15 +43,22 @@ export default function ChartStatus({ title, data }: ChartProps) {
           center: ['24%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: true,
+            show: false,
             position: 'inside',
             formatter: ({ data }: any) => `${data.value}`,
             fontSize: 12,
             fontWeight: 'bold',
           },
+          emphasis: {
+            label: {
+              show: true, // hover 시 표시
+              fontSize: 12,
+              fontWeight: 'bold',
+            },
+          },
           labelLine: { show: false },
           data: data,
-          color: ['#AAAAAA', '#45D141', '#90FF8D', '#22B1F5', '#FFCC00', '#E93935'],
+          color: ['#ffd1cc', '#cce5f4', '#fff5cc', '#e6ffcc', '#e6d5ed', '#76f589', '#ffdcec'],
         },
       ],
     };
@@ -69,7 +77,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '22rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '25rem', height: '10.4rem' }} />
     </div>
   );
 }

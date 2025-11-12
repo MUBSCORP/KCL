@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { api } from '@/services/apiClient';
 
-// topState (디자인 구조 유지)
+// ===== 디자인 퍼블 경로 유지 =====
 import ChartRunning from '@/app/public/components/modules/topState/ChartRunning';
 import ChartState from '@/app/public/components/modules/topState/ChartState';
 import ChartOperation from '@/app/public/components/modules/topState/ChartOperation';
@@ -21,6 +20,9 @@ import titleIcon from '@/assets/images/icon/detail.png';
 // monitoring
 import List from '@/app/public/components/modules/monitoring/List';
 
+// ===============================
+// 타입 정의 (운영 구조 반영)
+// ===============================
 type MonitoringItem = {
   id: number;
   title: string;
@@ -28,9 +30,9 @@ type MonitoringItem = {
   schedule: string;
   memo: boolean;
   memoText: string;
-  operation: string;
-  status: string;
-  statusLabel: string;
+  operation: string;       // charge | discharge | rest | rest-iso | pattern | balance | chargemap ...
+  status: string;          // run/ongoing/stop/rest/alarm 등 원시 상태
+  statusLabel: string;     // 대기/진행중/일시정지/알람 (배지 표기)
   voltage: string;
   current: string;
   power: string;
@@ -50,31 +52,38 @@ type MonitoringItem = {
   shutdown?: boolean;
 };
 
-const fetcher = (path: string) => api<MonitoringItem[]>(path);
+// ===============================
+// 통신 도구
+// ===============================
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? '';
+const LIST_API = `${API_BASE_URL}/api/monitoring/PACK/list`;
 const SSE_URL = `${API_BASE_URL}/api/monitoring/sse/telemetry`;
+
+const fetcher = async (path: string) => {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as MonitoringItem[];
+};
 
 export default function DashboardPack() {
   // ===============================
-  // ✅ 1. 장비 목록 로딩
+  // ✅ 1) 장비 목록 로딩
   // ===============================
-  const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(
-    '/api/monitoring/PACK/list',
-    fetcher,
-    {
-      refreshInterval: 0,
-      revalidateOnFocus: false,
-    }
-  );
+  const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
+    refreshInterval: 0,
+    revalidateOnFocus: false,
+  });
   const loading = !listData && !error;
 
   // ===============================
-  // ✅ 2. SSE (1회 재호출 트리거)
+  // ✅ 2) SSE: 데이터 갱신 트리거
   // ===============================
   useEffect(() => {
+    // 서버사이드에서 실행 방지
+    if (typeof window === 'undefined') return;
     const es = new EventSource(SSE_URL);
     es.onopen = () => console.info('[SSE] connected:', SSE_URL);
-    es.onmessage = () => mutate();
+    es.onmessage = () => mutate(); // 수신 시 목록 재검증
     es.onerror = (err) => console.error('[SSE] error', err);
     return () => {
       console.info('[SSE] disconnected');
@@ -83,17 +92,15 @@ export default function DashboardPack() {
   }, [mutate]);
 
   // ===============================
-  // ✅ 3. 검색어 기반 필터링
+  // ✅ 3) 검색 필터
   // ===============================
   const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
   const displayList: MonitoringItem[] = useMemo(() => {
     const src = listData ?? [];
     if (!searchKeywords.length) return src.map((i) => ({ ...i, check: false }));
-
     const keys = searchKeywords
       .map((k) => k.trim().toLowerCase())
-      .filter((k) => k.length > 0);
-
+      .filter(Boolean);
     return src.map((item) => {
       const title = item.title?.toLowerCase() ?? '';
       const eqpid = item.eqpid?.toLowerCase() ?? '';
@@ -103,54 +110,54 @@ export default function DashboardPack() {
   }, [listData, searchKeywords]);
 
   // ===============================
-  // ✅ 4. 차트 데이터 계산 (useMemo)
+  // ✅ 4) 차트 데이터 집계
   // ===============================
-  const {
-    runningChart,
-    opDistChart,
-    status4Chart,
-    todayChart,
-    monthChart,
-  } = useMemo(() => {
-    if (!listData?.length)
+  const { runningChart, opDistChart, status4Chart, todayChart, monthChart } = useMemo(() => {
+    if (!listData?.length) {
       return {
         runningChart: { total: 0, running: 0 },
-        opDistChart: [],
-        status4Chart: [],
-        todayChart: [],
-        monthChart: [],
+        opDistChart: [] as { name: string; value: number }[],
+        status4Chart: [] as { name: string; value: number }[],
+        todayChart: [
+          { name: '방전', value: 0 },
+          { name: '충전', value: 0 },
+        ],
+        monthChart: [] as { name: string; charge: number; discharge: number }[],
       };
+    }
 
     const total = listData.length;
-    const running = listData.filter((i) => i.status === 'run').length;
+    const running = listData.filter((i) => i.status === 'run' || i.statusLabel === '진행중').length;
 
+    // 운영 상태 → 퍼블 ChartState(운전모드 분포)
     const opBuckets: Record<string, number> = {
-      CHARGE: 0,
-      DISCHARGE: 0,
-      REST: 0,
-      'REST(ISO)': 0,
-      PATTERN: 0,
-      BALANCE: 0,
-      CHARGEMAP: 0,
+      Charge: 0,
+      Discharge: 0,
+      Rest: 0,
+      'Rest(ISO)': 0,
+      Pattern: 0,
+      Balance: 0,
+      Chargemap: 0,
     };
-
     listData.forEach((i) => {
       const op = (i.operation || '').toLowerCase();
-      if (op === 'charge') opBuckets.CHARGE++;
-      else if (op === 'discharge') opBuckets.DISCHARGE++;
-      else if (op === 'rest-iso') opBuckets['REST(ISO)']++;
-      else if (op === 'pattern') opBuckets.PATTERN++;
-      else if (op === 'balance') opBuckets.BALANCE++;
-      else if (op === 'chargemap') opBuckets.CHARGEMAP++;
-      else opBuckets.REST++;
+      if (op === 'charge') opBuckets.Charge++;
+      else if (op === 'discharge') opBuckets.Discharge++;
+      else if (op === 'rest-iso') opBuckets['Rest(ISO)']++;
+      else if (op === 'pattern') opBuckets.Pattern++;
+      else if (op === 'balance') opBuckets.Balance++;
+      else if (op === 'chargemap') opBuckets.Chargemap++;
+      else opBuckets.Rest++;
     });
+    const opDistChart = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
 
-    const opDist = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
-
+    // 퍼블 ChartOperation(상태 4종 분포)
     const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
-      대기: 0, 진행중: 0, 일시정지: 0, 알람: 0,
+      대기: 0,
+      진행중: 0,
+      일시정지: 0,
+      알람: 0,
     };
-
     listData.forEach((i) => {
       const label = i.statusLabel;
       if (label === '대기') statusBuckets['대기']++;
@@ -158,26 +165,26 @@ export default function DashboardPack() {
       else if (label === '알람') statusBuckets['알람']++;
       else statusBuckets['진행중']++;
     });
+    const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({ name, value }));
 
-    const status4 = Object.entries(statusBuckets).map(([name, value]) => ({ name, value }));
-
-    const today = [
+    // 전력량 차트(placeholder: 0) — 추후 API 연동 시 대체
+    const todayChart = [
       { name: '방전', value: 0 },
       { name: '충전', value: 0 },
     ];
-    const month: { name: string; charge: number; discharge: number }[] = [];
+    const monthChart: { name: string; charge: number; discharge: number }[] = [];
 
     return {
       runningChart: { total, running },
-      opDistChart: opDist,
-      status4Chart: status4,
-      todayChart: today,
-      monthChart: month,
+      opDistChart,
+      status4Chart,
+      todayChart,
+      monthChart,
     };
   }, [listData]);
 
   // ===============================
-  // ✅ 5. 화면 렌더링 (디자인 반영)
+  // ✅ 5) 렌더링 (디자인 퍼블 레이아웃 유지)
   // ===============================
   return (
     <>
@@ -192,7 +199,8 @@ export default function DashboardPack() {
         </div>
 
         <div className="center">
-          <TopStateCenter equipType="PACK" />
+          {/* 디자인 퍼블 컴포넌트 시그니처 유지, 필요 시 prop 추가 */}
+          <TopStateCenter  equipType="PACK"  />
         </div>
 
         <div className="right">
@@ -209,6 +217,7 @@ export default function DashboardPack() {
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세" icon={titleIcon} />
+          {/* SearchArea 컴포넌트가 onSearchChange를 받지 않는 퍼블 버전이면 내부에서 무시됨 */}
           <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">
@@ -220,8 +229,10 @@ export default function DashboardPack() {
       <section className="monitoring">
         <h2 className="ir">모니터링 화면</h2>
         <div className="innerWrapper">
-          {/* ✅ 퍼블 디자인 반영된 기능형 List */}
-          <List listData={displayList} />
+          {/* 퍼블 스타일 List + 운영 데이터 */}
+          {loading && <div className="loading">불러오는 중…</div>}
+          {error && <div className="error">목록을 불러오지 못했습니다.</div>}
+          {listData && <List listData={displayList} />}
         </div>
       </section>
     </>

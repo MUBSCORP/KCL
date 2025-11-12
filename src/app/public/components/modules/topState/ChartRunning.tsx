@@ -45,23 +45,31 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
 
     const option: echarts.EChartsOption = {
       tooltip: {
+        show: false,                    // 퍼블: 툴팁 비표시
         trigger: 'item',
         formatter: '{b}: {c}대 ({d}%)',
         confine: true,
-        textStyle: { fontSize: 10 }, // UI/UX: 툴팁 폰트
+        textStyle: { fontSize: 10 },
       },
       series: [
         {
           name: '장비가동률',
           type: 'pie',
-          radius: ['50%', '90%'], // UI/UX: 반지름 조정
+          radius: ['50%', '90%'],       // 퍼블 값
           avoidLabelOverlap: false,
           label: {
-            show: true,
+            show: false,                // 퍼블: 기본 숨김
             position: 'inside',
-            formatter: ({ data }: any) => `${data?.value ?? 0}대`,
+            formatter: ({ data }: any) => `${data?.value ?? 0}`,
             fontSize: 12,
             fontWeight: 'bold',
+          },
+          emphasis: {
+            label: {
+              show: true,               // 퍼블: hover 시 표시
+              fontSize: 14,
+              fontWeight: 'bold',
+            },
           },
           labelLine: { show: false },
           data: [
@@ -71,7 +79,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
           color: ['#86A315', '#E6E6E6'],
         },
       ],
-      // 중앙 퍼센트 텍스트를 원하면 아래 주석 해제
+      // 중앙 퍼센트 텍스트가 필요하면 아래 주석 해제
       // graphic: {
       //   type: 'text',
       //   left: 'center',
@@ -90,7 +98,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
         <div
           className="chartWrap"
           ref={containerRef}
-          style={{ width: '9.4rem', height: '10.4rem' }} // UI/UX: 높이 조정
+          style={{ width: '9.4rem', height: '10.4rem' }} // 퍼블 사이즈
         />
         <div className="legend">
           <p>

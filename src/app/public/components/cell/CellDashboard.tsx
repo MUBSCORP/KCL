@@ -21,12 +21,12 @@ export default function DashboardPack() {
   // --- Chart Data ---
   const chartData = { total: 20, running: 15 };
   const chartData2 = [
-    { name: '대기', value: 20 },
-    { name: '정상(충방전기)', value: 15 },
-    { name: '정상(챔버)', value: 10 },
-    { name: '완료', value: 10 },
-    { name: '경고', value: 15 },
-    { name: '위험', value: 10 },
+    { name: 'Charge', value: 20 },
+    { name: 'Discharge', value: 15 },
+    { name: 'Rest', value: 10 },
+    { name: 'Rest(ISO)', value: 10 },
+    { name: 'Pattern', value: 15 },
+    { name: 'ChargeMap', value: 10 },
   ];
   const chartData3 = [
     { name: '진행중', value: 13 },

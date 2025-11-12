@@ -1,18 +1,29 @@
+// app/public/components/modules/monitoring/List.tsx
 'use client';
 
 import React from 'react';
-import { IconButton, Chip, Button, Dialog, DialogActions, DialogContent, DialogTitle, Menu, MenuItem } from '@mui/material';
+import {
+  IconButton,
+  Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Snackbar,
+  Alert,
+} from '@mui/material';
 import Image from 'next/image';
 import IconMemo from '@/assets/images/icon/memo.png';
 import CloseIcon from '@mui/icons-material/Close';
 
 interface ListItem {
   id: number;
-  x: number;
-  y: number;
+
+  // 위치
+  x?: number;
+  y?: number;
+
   title: string;
   check: boolean;
-  shutdown: boolean;
   schedule: string;
   memo: boolean;
   memoText: string;
@@ -25,13 +36,22 @@ interface ListItem {
   step: string;
   cycle: string;
   rly: string;
-  dgv: string;
-  temp: string;
-  humidity: string;
+  dgv: string;     // 퍼블 표기: 챔버 현재/설정
+  temp: string;    // 퍼블 표기: 칠러 현재/유량
+  humidity: string;// 퍼블 표기: 습도 현재/설정
   cycles: number;
   activeCycles: number;
   time: string;
+
+  // 퍼블 추가 필드(있으면 사용)
   memoTotal?: string;
+
+  // 퍼블 신규 속성: 셧다운 여부 (CSS 표시)
+  shutdown?: boolean;
+
+  // 메모 연동 식별자
+  eqpid?: string;
+  channelIndex?: number;
 }
 
 interface ListProps {
@@ -43,14 +63,33 @@ export default function List({ listData }: ListProps) {
   const [selectedItem, setSelectedItem] = React.useState<ListItem | null>(null);
   const [selectedMemo, setSelectedMemo] = React.useState<ListItem | null>(null);
 
+  // 메모 textarea 값 & 저장 상태
+  const [text, setText] = React.useState<string>('');
+  const [saving, setSaving] = React.useState(false);
+
+  // 스낵바(토스트)
+  const [snOpen, setSnOpen] = React.useState(false);
+  const [snText, setSnText] = React.useState('');
+  const [snSev, setSnSev] = React.useState<'success' | 'error' | 'info'>('info');
+  const showMsg = (msg: string, sev: 'success' | 'error' | 'info' = 'info') => {
+    setSnText(msg);
+    setSnSev(sev);
+    setSnOpen(true);
+  };
+
+  // 메모 UI 즉시 반영용: id → { memo, memoText }
+  const [overrides, setOverrides] = React.useState<
+    Record<number, { memo: boolean; memoText: string }>
+  >({});
+
+  // UL 사이즈 → 카드 위치 계산용
   const [ulSize, setUlSize] = React.useState<{ width: number; height: number }>({
     width: 0,
     height: 0,
   });
-
   const ulRef = React.useRef<HTMLUListElement | null>(null);
 
-  const liWidth = ulSize.width * 0.1;
+  const liWidth = ulSize.width * 0.1; // 한 줄 10개 기준
 
   React.useLayoutEffect(() => {
     if (!ulRef.current) return;
@@ -65,9 +104,31 @@ export default function List({ listData }: ListProps) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  const handleClickOpen = (item: ListItem) => {
+  // 렌더링 시 오버라이드 병합
+  const withOverride = (item: ListItem): ListItem => {
+    const ov = overrides[item.id];
+    return ov ? { ...item, memo: ov.memo, memoText: ov.memoText } : item;
+  };
+
+  // 공통: 메모 API 식별자 확인
+  const ensureIds = (
+    item: ListItem | null,
+  ): { eqpid: string; channel: number } | null => {
+    if (!item?.eqpid || item.channelIndex == null) {
+      showMsg('eqpid/channelIndex가 없어 메모 API를 호출할 수 없습니다.', 'error');
+      console.warn('Missing ids for memo API', item);
+      return null;
+    }
+    return { eqpid: item.eqpid, channel: item.channelIndex };
+  };
+
+  // --- 모달 열기/닫기 ---
+  const handleClickOpen = (raw: ListItem) => {
+    const item = withOverride(raw);
     setSelectedItem(item);
     setSelectedMemo(item);
+    // 퍼블은 memoTotal을 표시하지만, 실제 기능은 memoText를 편집하므로 memoText 우선
+    setText(item.memoText ?? item.memoTotal ?? '');
     setOpen(true);
   };
 
@@ -75,49 +136,93 @@ export default function List({ listData }: ListProps) {
     setOpen(false);
     setSelectedItem(null);
     setSelectedMemo(null);
+    setText('');
   };
 
-  // const [hoverOpen, setHoverOpen] = React.useState(false);
-  // const handleHoverOpen = (item: ListItem) => {
-  //   setSelectedItem(item);
-  //   setSelectedMemo(item);
-  //   setHoverOpen(true);
-  // };
-  // const handleHoverClose = () => {
-  //   setHoverOpen(false);
-  //   setSelectedItem(null);
-  //   setSelectedMemo(null);
-  // };
+  // --- 메모 저장 (백엔드 upsert) ---
+  const handleSave = async () => {
+    const ids = ensureIds(selectedItem);
+    if (!ids) return;
 
-  // const [menuPosition, setMenuPosition] = React.useState<{ mouseX: number; mouseY: number } | null>(null);
+    try {
+      setSaving(true);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            eqpid: ids.eqpid,
+            channel: ids.channel,
+            content: text,
+            userId: 'web',
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-  // const handleContextMenu = (event: React.MouseEvent) => {
-  //   event.preventDefault();
-  //   setMenuPosition({
-  //     mouseX: event.clientX + 2,
-  //     mouseY: event.clientY - 6,
-  //   });
-  // };
+      const has = !!text.trim();
 
-  // const handleMenuClose = () => {
-  //   setMenuPosition(null);
-  // };
+      if (selectedItem) {
+        setOverrides(prev => ({
+          ...prev,
+          [selectedItem.id]: { memo: has, memoText: text },
+        }));
+      }
 
-  // const handleEdit = () => {
-  //   console.log('수정하기:', selectedMemo);
-  //   handleMenuClose();
-  // };
+      handleClose();
+      showMsg('메모가 저장되었습니다.', 'success');
+    } catch (e: any) {
+      console.error('메모 저장 실패', e);
+      showMsg(`메모 저장 실패: ${e?.message ?? e}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  // const handleDelete = () => {
-  //   console.log('삭제하기:', selectedMemo);
-  //   handleMenuClose();
-  // };
+  // --- 메모 삭제 ---
+  const handleDelete = async () => {
+    const ids = ensureIds(selectedItem);
+    if (!ids) return;
+
+    try {
+      setSaving(true);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo?eqpid=${encodeURIComponent(
+          ids.eqpid,
+        )}&channel=${ids.channel}`,
+        { method: 'DELETE', credentials: 'include' },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (selectedItem) {
+        setOverrides(prev => ({
+          ...prev,
+          [selectedItem.id]: { memo: false, memoText: '' },
+        }));
+      }
+
+      handleClose();
+      showMsg('메모가 삭제되었습니다.', 'success');
+    } catch (e: any) {
+      console.error('메모 삭제 실패', e);
+      showMsg(`메모 삭제 실패: ${e?.message ?? e}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
+      {/* 퍼블 클래스/마크업 유지, 기능(클릭/메모/토스트) 그대로 */}
       <ul ref={ulRef} className="list">
-        {listData.map((item) => {
-          const left = (item.x - 1) * liWidth;
-          const top = (item.y - 1) * 416;
+        {listData.map(raw => {
+          const item = withOverride(raw);
+          const x = item.x ?? 1;
+          const y = item.y ?? 1;
+          const left = (x - 1) * liWidth;
+          const top = (y - 1) * 416; // 한 줄 높이(디자인 기준)
 
           return (
             <li
@@ -126,26 +231,34 @@ export default function List({ listData }: ListProps) {
               data-checked={item.check ? 'checked' : undefined}
               data-shutdown={item.shutdown ? 'shutdown' : undefined}
               data-status={item.status}
-              style={{
-                left: `${left}px`,
-                top: `${top}px`,
-              }}
+              style={{ left: `${left}px`, top: `${top}px` }}
             >
               <div className="inner">
                 <div className="topArea">
+                  {/* 제목 클릭 시 메모 모달 오픈 (퍼블 동일) */}
                   <h3 className="tit" onClick={() => handleClickOpen(item)}>
                     {item.title}
                   </h3>
                   <div className="right">
                     {item.memo && (
-                      <IconButton className="btnMemo" type="button" aria-label="메모">
+                      <IconButton
+                        className="btnMemo"
+                        type="button"
+                        aria-label="메모"
+                        onClick={() => handleClickOpen(item)}
+                      >
                         <Image src={IconMemo} alt="" />
                       </IconButton>
                     )}
-                    <Chip label={item.statusLabel} className="status" data-status={item.status} />
+                    <Chip
+                      label={item.statusLabel}
+                      className="status"
+                      data-status={item.status}
+                    />
                   </div>
                 </div>
 
+                {/* 퍼블 수치 블록 그대로 */}
                 <div className="bodyArea">
                   <dl>
                     <dt>전압</dt>
@@ -210,58 +323,7 @@ export default function List({ listData }: ListProps) {
         })}
       </ul>
 
-      {/* hover modal */}
-      {/* <Dialog
-        className="dialogCont"
-        open={hoverOpen}
-        onClose={handleHoverClose}
-        PaperProps={{
-          // 메뉴 열려있을 땐 닫지 않기
-          onMouseLeave: () => {
-            if (!menuPosition) handleHoverClose();
-          },
-          onContextMenu: handleContextMenu,
-          style: { cursor: 'default' },
-        }}
-      >
-        <div className="modalWrapper dtlInfo">
-          <DialogTitle className="tit">{selectedItem?.title}</DialogTitle>
-          <DialogContent className="contents">
-            <dl>
-              <dt>
-                <h5 className="tit">스케쥴명</h5>
-              </dt>
-              <dd>
-                <p>{selectedMemo?.schedule}</p>
-              </dd>
-            </dl>
-            <dl className="memoTotal">
-              <dt>
-                <h5 className="tit">MEMO</h5>
-              </dt>
-              <dd>
-                <div className="memoTextarea">
-                  <textarea placeholder="메모를 입력하세요" rows={5} defaultValue={selectedItem?.memoText} disabled />
-                  <button type="button" className="btnMod">
-                    <span>수정</span>
-                  </button>
-                  <button type="button" className="btnDel">
-                    <span>삭제</span>
-                  </button>
-                </div>
-              </dd>
-            </dl>
-          </DialogContent>
-        </div>
-      </Dialog> */}
-
-      {/* context */}
-      {/* <Menu open={!!menuPosition} onClose={handleMenuClose} anchorReference="anchorPosition" anchorPosition={menuPosition ? { top: menuPosition.mouseY, left: menuPosition.mouseX } : undefined}>
-        <MenuItem onClick={handleEdit}>수정</MenuItem>
-        <MenuItem onClick={handleDelete}>삭제</MenuItem>
-      </Menu> */}
-
-      {/* click modal */}
+      {/* 클릭 모달 — 퍼블 레이아웃 유지 + 기능 버튼 동작 */}
       <Dialog className="dialogCont" open={open} onClose={handleClose} aria-labelledby="alert-dialog-title">
         <div className="modalWrapper dtlInfo">
           <DialogTitle className="tit" id="alert-dialog-title">
@@ -274,48 +336,63 @@ export default function List({ listData }: ListProps) {
           </DialogTitle>
           <DialogContent className="contents">
             <dl>
-              <dt>
-                <h5 className="tit">스케쥴명</h5>
-              </dt>
-              <dd>
-                <p>{selectedMemo?.schedule}</p>
-              </dd>
+              <dt><h5 className="tit">스케쥴명</h5></dt>
+              <dd><p>{selectedMemo?.schedule}</p></dd>
             </dl>
+
             <dl className="memoTotal">
-              <dt>
-                <h5 className="tit">MEMO</h5>
-              </dt>
+              <dt><h5 className="tit">MEMO</h5></dt>
               <dd>
                 <div className="memoTextarea">
-                  <textarea placeholder="메모 입력 영역" rows={5} defaultValue={selectedItem?.memoTotal} readOnly />
+                  {/* 퍼블은 defaultValue/readOnly였지만 기능 유지 위해 value 바인딩 */}
+                  <textarea
+                    placeholder="메모 입력 영역"
+                    rows={5}
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                  />
                   <div className="btnWrap">
-                    <button type="button" className="btnDel">
+                    {/* 퍼블 버튼 클래스 유지, 기능 연결 */}
+                    <button
+                      type="button"
+                      className="btnDel"
+                      onClick={handleDelete}
+                      disabled={saving}
+                    >
                       <span>삭제</span>
                     </button>
-                    <button type="button" className="btnMod">
-                      <span>수정</span>
-                    </button>
-                    <button type="button" className="btnConfirm">
-                      <span>저장</span>
+                    <button
+                      type="button"
+                      className="btnConfirm"
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      <span>{saving ? '저장중...' : '저장'}</span>
                     </button>
                   </div>
                 </div>
               </dd>
             </dl>
           </DialogContent>
-          {/* <DialogActions className="bottom">
-            <Button className="negative" onClick={handleClose}>
-              메모삭제
-            </Button>
-            <Button className="positive" onClick={handleClose}>
-              메모수정
-            </Button>
-            <Button className="positive" onClick={handleClose}>
-              메모추가
-            </Button>
-          </DialogActions> */}
         </div>
       </Dialog>
+
+      {/* Snackbar 토스트 */}
+      <Snackbar
+        open={snOpen}
+        autoHideDuration={2500}
+        onClose={() => setSnOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert
+          onClose={() => setSnOpen(false)}
+          severity={snSev}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snText}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

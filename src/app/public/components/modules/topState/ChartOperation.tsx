@@ -5,33 +5,38 @@ import * as echarts from 'echarts';
 
 interface ChartProps {
   title: string;
-  data: { name: string; value: number }[];
-  /** 퍼블 기본은 false. 필요 시 true로 켜서 디버깅/검증 */
-  showTooltip?: boolean;
+  data: { name: string; value: number }[]; // name: 대기/진행중/일시정지/알람
 }
 
-/**
- * 퍼블 원본 스타일을 기본값으로 유지하면서 기능 보강
- * - legend formatter 방어 처리(idx === -1)
- * - colors 부족 시 fallback 색 적용
- * - props.showTooltip(기본 false)
- */
-export default function ChartOperation({ title, data, showTooltip = false }: ChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
+// 도넛 색상: 카드/뱃지와 동일하게 고정
+const STATUS_COLORS: Record<string, string> = {
+  대기: '#22B1F5',      // blue  : var(--state-rest)
+  진행중: '#45D141',    // green : var(--state-ongoing)
+  일시정지: '#FFEE00',  // yellow: var(--state-stop)
+  알람: '#FF2626',      // red   : var(--state-alarm)
+};
 
-  // UI/UX 팔레트 (퍼블 기준)
-  const colors = ['#45D141', '#E93935', '#22B1F5', '#AAA'];
+export default function ChartOperation({ title, data }: ChartProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
 
+    // name(대기/진행중/일시정지/알람)에 따라 색상 지정
+    const seriesData = data.map((item) => ({
+      ...item,
+      itemStyle: {
+        color: STATUS_COLORS[item.name] ?? '#AAAAAA',
+      },
+    }));
+
     const option: echarts.EChartsOption = {
       tooltip: {
-        show: showTooltip, // 퍼블 기본은 false
+        show: false, // 퍼블처럼 툴팁 숨김
         trigger: 'item',
-        formatter: '{b}: {c} ({d}%)',
+        formatter: '{b}: {c}대 ({d}%)',
         confine: true,
         textStyle: { fontSize: 10 },
       },
@@ -43,72 +48,60 @@ export default function ChartOperation({ title, data, showTooltip = false }: Cha
         itemWidth: 6,
         itemHeight: 6,
         formatter: (name: string) => {
-          const idx = data.findIndex((d) => d.name === name);
-          if (idx === -1) return name; // 방어 로직
-          return `{a|${name}} {b${idx}|${data[idx].value}대}`;
+          const item = data.find((d) => d.name === name);
+          const value = item?.value ?? 0;
+          return `${name} ${value}대`;
         },
         textStyle: {
           fontSize: 10,
-          rich: {
-            a: { width: 50 },
-            ...data.reduce((acc, _d, i) => {
-              (acc as any)[`b${i}`] = {
-                color: '#fff',
-                backgroundColor: colors[i] ?? '#888',
-                borderRadius: 3,
-                padding: [3, 4, 1],
-                width: 25,
-                align: 'right',
-              };
-              return acc;
-            }, {} as Record<string, any>),
-          },
-        } as any,
-      } as echarts.LegendComponentOption,
-
+        },
+        data: data.map((d) => d.name),
+      },
       series: [
         {
           name: title,
           type: 'pie',
-          radius: ['50%', '90%'], // 퍼블 값 유지
+          radius: ['50%', '90%'],
           center: ['27%', '50%'],
           avoidLabelOverlap: false,
           label: {
-            show: false, // 퍼블: 기본 숨김
+            show: false,
             position: 'inside',
-            formatter: ({ data }: any) => `${data.value}`,
+            formatter: ({ data }: any) => `${data?.value ?? 0}`,
             fontSize: 12,
             fontWeight: 'bold',
           },
           emphasis: {
             label: {
-              show: true, // hover 시 표시 (퍼블 사양)
+              show: true,
               fontSize: 12,
               fontWeight: 'bold',
             },
           },
           labelLine: { show: false },
-          data,
-          color: colors,
+          data: seriesData,
         },
       ],
     };
 
     chart.setOption(option);
 
-    const onResize = () => chart.resize();
-    window.addEventListener('resize', onResize);
-
+    const resize = () => chart.resize();
+    window.addEventListener('resize', resize);
     return () => {
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener('resize', resize);
       chart.dispose();
     };
-  }, [data, title, showTooltip]);
+  }, [data, title]);
 
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '22rem', height: '10.4rem' }} />
+      <div
+        className="chartWrap"
+        ref={chartRef}
+        style={{ width: '22rem', height: '10.4rem' }}
+      />
     </div>
   );
 }

@@ -27,8 +27,8 @@ interface ListItem {
   memo: boolean;
   memoText: string;
   operation: string;
-  status: string;
-  statusLabel: string;
+  status: string;          // run / rest / pause / alarm ...
+  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람
   voltage: string;
   current: string;
   power: string;
@@ -42,10 +42,7 @@ interface ListItem {
   activeCycles: number;
   time: string;
 
-  // 퍼블 쪽에서 추가된 필드 (필요 시 사용)
   memoTotal?: string;
-
-  // 🔹 퍼블 신규 속성: 셧다운 여부 (테두리 점등 등 CSS용)
   shutdown?: boolean;
 
   // 메모 API 식별자 (백엔드 연동용)
@@ -56,6 +53,32 @@ interface ListItem {
 interface ListProps {
   listData: ListItem[];
 }
+
+/**
+ * CSS가 기대하는 상태 토큰으로 매핑
+ *  - li[data-status="rest|ongoing|stop|alarm"]
+ *  - .status[data-status="rest|ongoing|stop|alarm"]
+ */
+const mapStatusToCss = (
+  status?: string,
+  statusLabel?: string,
+): 'rest' | 'ongoing' | 'stop' | 'alarm' => {
+  // 1) 한글 라벨 우선
+  if (statusLabel === '대기') return 'rest';
+  if (statusLabel === '진행중') return 'ongoing';
+  if (statusLabel === '일시정지') return 'stop';
+  if (statusLabel === '알람') return 'alarm';
+
+  // 2) 원시 status 값으로 보정
+  const s = (status ?? '').toLowerCase();
+  if (s === 'rest') return 'rest';
+  if (s === 'run' || s === 'ongoing') return 'ongoing';
+  if (s === 'pause' || s === 'stop') return 'stop';
+  if (s === 'alarm') return 'alarm';
+
+  // 기본값: 대기
+  return 'rest';
+};
 
 export default function List({ listData }: ListProps) {
   const [open, setOpen] = React.useState(false);
@@ -216,18 +239,23 @@ export default function List({ listData }: ListProps) {
       <ul ref={ulRef} className="list">
         {listData.map(raw => {
           const item = withOverride(raw);
+
           const x = item.x ?? 1;
           const y = item.y ?? 1;
           const left = (x - 1) * liWidth;
           const top = (y - 1) * 416; // 한 줄 높이(디자인 기준)
+
+          // ✅ CSS가 인식할 상태 토큰
+          const statusToken = mapStatusToCss(item.status, item.statusLabel);
 
           return (
             <li
               key={item.id}
               data-operation={item.operation}
               data-checked={item.check ? 'checked' : undefined}
-              // 🔹 퍼블 디자인 반영: shutdown 상태용 data-shutdown
               data-shutdown={item.shutdown ? 'shutdown' : undefined}
+              // ✅ 카드 테두리/배경색용
+              data-status={statusToken}
               style={{
                 left: `${left}px`,
                 top: `${top}px`,
@@ -253,7 +281,8 @@ export default function List({ listData }: ListProps) {
                     <Chip
                       label={item.statusLabel}
                       className="status"
-                      data-status={item.status}
+                      // ✅ 뱃지 배경색용
+                      data-status={statusToken}
                     />
                   </div>
                 </div>

@@ -23,16 +23,16 @@ import List from '@/app/public/components/modules/monitoring/List';
 // ===============================
 // 타입 정의 (운영 구조 반영)
 // ===============================
-type MonitoringItem = {
+export type MonitoringItem = {
   id: number;
   title: string;
   check: boolean;
   schedule: string;
   memo: boolean;
   memoText: string;
-  operation: string;       // charge | discharge | rest | rest-iso | pattern | balance | chargemap ...
-  status: string;          // run/ongoing/stop/rest/alarm 등 원시 상태
-  statusLabel: string;     // 대기/진행중/일시정지/알람 (배지 표기)
+  operation: string;       // charge | discharge | rest | rest-iso | pattern | balance | chargemap | pause | error ...
+  status: string;          // run / rest / pause / alarm ...
+  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람 (배지 표기)
   voltage: string;
   current: string;
   power: string;
@@ -79,12 +79,13 @@ export default function DashboardPack() {
   // ✅ 2) SSE: 데이터 갱신 트리거
   // ===============================
   useEffect(() => {
-    // 서버사이드에서 실행 방지
     if (typeof window === 'undefined') return;
+
     const es = new EventSource(SSE_URL);
     es.onopen = () => console.info('[SSE] connected:', SSE_URL);
     es.onmessage = () => mutate(); // 수신 시 목록 재검증
     es.onerror = (err) => console.error('[SSE] error', err);
+
     return () => {
       console.info('[SSE] disconnected');
       es.close();
@@ -98,9 +99,11 @@ export default function DashboardPack() {
   const displayList: MonitoringItem[] = useMemo(() => {
     const src = listData ?? [];
     if (!searchKeywords.length) return src.map((i) => ({ ...i, check: false }));
+
     const keys = searchKeywords
       .map((k) => k.trim().toLowerCase())
       .filter(Boolean);
+
     return src.map((item) => {
       const title = item.title?.toLowerCase() ?? '';
       const eqpid = item.eqpid?.toLowerCase() ?? '';
@@ -127,9 +130,13 @@ export default function DashboardPack() {
     }
 
     const total = listData.length;
-    const running = listData.filter((i) => i.status === 'run' || i.statusLabel === '진행중').length;
 
-    // 운영 상태 → 퍼블 ChartState(운전모드 분포)
+    // status (run/rest/pause/alarm) 또는 statusLabel 기반 running 수
+    const running = listData.filter(
+      (i) => i.status === 'run' || i.statusLabel === '진행중',
+    ).length;
+
+    // === 4-1. 운전 모드 → ChartState (장비현황) ===
     const opBuckets: Record<string, number> = {
       Charge: 0,
       Discharge: 0,
@@ -139,6 +146,7 @@ export default function DashboardPack() {
       Balance: 0,
       Chargemap: 0,
     };
+
     listData.forEach((i) => {
       const op = (i.operation || '').toLowerCase();
       if (op === 'charge') opBuckets.Charge++;
@@ -149,25 +157,32 @@ export default function DashboardPack() {
       else if (op === 'chargemap') opBuckets.Chargemap++;
       else opBuckets.Rest++;
     });
+
     const opDistChart = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
 
-    // 퍼블 ChartOperation(상태 4종 분포)
+    // === 4-2. 상태 4종 → ChartOperation (장비가동현황) ===
+    // label: 대기 / 진행중 / 일시정지 / 알람
     const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
       대기: 0,
       진행중: 0,
       일시정지: 0,
       알람: 0,
     };
+
     listData.forEach((i) => {
       const label = i.statusLabel;
       if (label === '대기') statusBuckets['대기']++;
       else if (label === '일시정지') statusBuckets['일시정지']++;
       else if (label === '알람') statusBuckets['알람']++;
-      else statusBuckets['진행중']++;
+      else statusBuckets['진행중']++; // 나머지는 모두 진행중으로
     });
-    const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({ name, value }));
 
-    // 전력량 차트(placeholder: 0) — 추후 API 연동 시 대체
+    const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({
+      name,
+      value,
+    }));
+
+    // === 4-3. 전력량 차트 (향후 별도 API 연동) ===
     const todayChart = [
       { name: '방전', value: 0 },
       { name: '충전', value: 0 },
@@ -193,14 +208,17 @@ export default function DashboardPack() {
         <h2 className="ir">상단 기능 화면</h2>
 
         <div className="left">
-          <ChartRunning title="장비가동률" total={runningChart.total} running={runningChart.running} />
+          <ChartRunning
+            title="장비가동률"
+            total={runningChart.total}
+            running={runningChart.running}
+          />
           <ChartState title="장비현황" data={opDistChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
         </div>
 
         <div className="center">
-          {/* 디자인 퍼블 컴포넌트 시그니처 유지, 필요 시 prop 추가 */}
-          <TopStateCenter  equipType="PACK"  />
+          <TopStateCenter equipType="PACK" />
         </div>
 
         <div className="right">
@@ -217,7 +235,6 @@ export default function DashboardPack() {
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세" icon={titleIcon} />
-          {/* SearchArea 컴포넌트가 onSearchChange를 받지 않는 퍼블 버전이면 내부에서 무시됨 */}
           <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">
@@ -229,7 +246,6 @@ export default function DashboardPack() {
       <section className="monitoring">
         <h2 className="ir">모니터링 화면</h2>
         <div className="innerWrapper">
-          {/* 퍼블 스타일 List + 운영 데이터 */}
           {loading && <div className="loading">불러오는 중…</div>}
           {error && <div className="error">목록을 불러오지 못했습니다.</div>}
           {listData && <List listData={displayList} />}

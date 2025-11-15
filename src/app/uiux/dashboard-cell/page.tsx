@@ -29,10 +29,10 @@ export default function DashboardPack() {
     { name: 'ChargeMap', value: 10 },
   ];
   const chartData3 = [
-    { name: '진행중', value: 13 },
-    { name: '정지', value: 2 },
-    { name: '완료', value: 1 },
-    { name: '사용가능', value: 1 },
+    { name: '대기', value: 13 },
+    { name: '진행중', value: 2 },
+    { name: '일시정지', value: 1 },
+    { name: '알람', value: 1 },
   ];
   const chartData4 = [
     { name: '방전', value: 280 },

@@ -2,15 +2,7 @@
 'use client';
 
 import React from 'react';
-import {
-  IconButton,
-  Chip,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Snackbar,
-  Alert,
-} from '@mui/material';
+import { IconButton, Chip, Dialog, DialogContent, DialogTitle, Snackbar, Alert } from '@mui/material';
 import Image from 'next/image';
 import IconMemo from '@/assets/images/icon/memo.png';
 import CloseIcon from '@mui/icons-material/Close';
@@ -33,12 +25,13 @@ interface ListItem {
   voltage: string;
   current: string;
   power: string;
+  powerOn: boolean;
   step: string;
   cycle: string;
   rly: string;
-  dgv: string;     // 퍼블 표기: 챔버 현재/설정
-  temp: string;    // 퍼블 표기: 칠러 현재/유량
-  humidity: string;// 퍼블 표기: 습도 현재/설정
+  chamber: string;
+  temp: string;
+  humidity: string;
   cycles: number;
   activeCycles: number;
   time: string;
@@ -78,9 +71,7 @@ export default function List({ listData }: ListProps) {
   };
 
   // 메모 UI 즉시 반영용: id → { memo, memoText }
-  const [overrides, setOverrides] = React.useState<
-    Record<number, { memo: boolean; memoText: string }>
-  >({});
+  const [overrides, setOverrides] = React.useState<Record<number, { memo: boolean; memoText: string }>>({});
 
   // UL 사이즈 → 카드 위치 계산용
   const [ulSize, setUlSize] = React.useState<{ width: number; height: number }>({
@@ -111,9 +102,7 @@ export default function List({ listData }: ListProps) {
   };
 
   // 공통: 메모 API 식별자 확인
-  const ensureIds = (
-    item: ListItem | null,
-  ): { eqpid: string; channel: number } | null => {
+  const ensureIds = (item: ListItem | null): { eqpid: string; channel: number } | null => {
     if (!item?.eqpid || item.channelIndex == null) {
       showMsg('eqpid/channelIndex가 없어 메모 API를 호출할 수 없습니다.', 'error');
       console.warn('Missing ids for memo API', item);
@@ -146,26 +135,23 @@ export default function List({ listData }: ListProps) {
 
     try {
       setSaving(true);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            eqpid: ids.eqpid,
-            channel: ids.channel,
-            content: text,
-            userId: 'web',
-          }),
-        },
-      );
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          eqpid: ids.eqpid,
+          channel: ids.channel,
+          content: text,
+          userId: 'web',
+        }),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const has = !!text.trim();
 
       if (selectedItem) {
-        setOverrides(prev => ({
+        setOverrides((prev) => ({
           ...prev,
           [selectedItem.id]: { memo: has, memoText: text },
         }));
@@ -188,16 +174,11 @@ export default function List({ listData }: ListProps) {
 
     try {
       setSaving(true);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo?eqpid=${encodeURIComponent(
-          ids.eqpid,
-        )}&channel=${ids.channel}`,
-        { method: 'DELETE', credentials: 'include' },
-      );
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo?eqpid=${encodeURIComponent(ids.eqpid)}&channel=${ids.channel}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       if (selectedItem) {
-        setOverrides(prev => ({
+        setOverrides((prev) => ({
           ...prev,
           [selectedItem.id]: { memo: false, memoText: '' },
         }));
@@ -217,22 +198,15 @@ export default function List({ listData }: ListProps) {
     <>
       {/* 퍼블 클래스/마크업 유지, 기능(클릭/메모/토스트) 그대로 */}
       <ul ref={ulRef} className="list">
-        {listData.map(raw => {
+        {listData.map((raw) => {
           const item = withOverride(raw);
           const x = item.x ?? 1;
           const y = item.y ?? 1;
           const left = (x - 1) * liWidth;
-          const top = (y - 1) * 416; // 한 줄 높이(디자인 기준)
+          const top = (y - 1) * 320; // 한 줄 높이(디자인 기준)
 
           return (
-            <li
-              key={item.id}
-              data-operation={item.operation}
-              data-checked={item.check ? 'checked' : undefined}
-              data-shutdown={item.shutdown ? 'shutdown' : undefined}
-              data-status={item.status}
-              style={{ left: `${left}px`, top: `${top}px` }}
-            >
+            <li key={item.id} data-operation={item.operation} data-checked={item.check ? 'checked' : undefined} data-shutdown={item.shutdown ? 'shutdown' : undefined} data-status={item.status} style={{ left: `${left}px`, top: `${top}px` }}>
               <div className="inner">
                 <div className="topArea">
                   {/* 제목 클릭 시 메모 모달 오픈 (퍼블 동일) */}
@@ -241,20 +215,11 @@ export default function List({ listData }: ListProps) {
                   </h3>
                   <div className="right">
                     {item.memo && (
-                      <IconButton
-                        className="btnMemo"
-                        type="button"
-                        aria-label="메모"
-                        onClick={() => handleClickOpen(item)}
-                      >
+                      <IconButton className="btnMemo" type="button" aria-label="메모" onClick={() => handleClickOpen(item)}>
                         <Image src={IconMemo} alt="" />
                       </IconButton>
                     )}
-                    <Chip
-                      label={item.statusLabel}
-                      className="status"
-                      data-status={item.status}
-                    />
+                    <Chip label={item.statusLabel} className="status" data-status={item.status} />
                   </div>
                 </div>
 
@@ -268,12 +233,12 @@ export default function List({ listData }: ListProps) {
                     <dt>전류</dt>
                     <dd>{item.current}</dd>
                   </dl>
-                  <dl>
+                  <dl className={item.powerOn ? 'on' : ''}>
                     <dt>파워</dt>
                     <dd>{item.power}</dd>
                   </dl>
                   <dl>
-                    <dt>{item.operation === 'charge' || item.operation === 'discharge' ? 'S' : '스텝'}</dt>
+                    <dt>스텝</dt>
                     <dd>{item.step}</dd>
                   </dl>
                   <dl>
@@ -288,7 +253,7 @@ export default function List({ listData }: ListProps) {
                     <dt>
                       챔버<small>현재/설정</small>
                     </dt>
-                    <dd>{item.dgv}</dd>
+                    <dd>{item.chamber}</dd>
                   </dl>
                   <dl>
                     <dt>
@@ -307,13 +272,11 @@ export default function List({ listData }: ListProps) {
                 <div className="bottomArea">
                   <ol className="cycle" data-cycle={item.cycles}>
                     {[...Array(5)].map((_, idx) => (
-                      <li key={idx} className={idx < item.activeCycles ? 'isActive' : ''}>
-                        <span>Cycle {idx + 1}</span>
-                      </li>
+                      <li key={idx} className={idx < item.activeCycles ? 'isActive' : ''} />
                     ))}
                   </ol>
                   <dl className="time">
-                    <dt>경과시간</dt>
+                    <dt></dt>
                     <dd>{item.time}</dd>
                   </dl>
                 </div>
@@ -336,37 +299,28 @@ export default function List({ listData }: ListProps) {
           </DialogTitle>
           <DialogContent className="contents">
             <dl>
-              <dt><h5 className="tit">스케쥴명</h5></dt>
-              <dd><p>{selectedMemo?.schedule}</p></dd>
+              <dt>
+                <h5 className="tit">스케쥴명</h5>
+              </dt>
+              <dd>
+                <p>{selectedMemo?.schedule}</p>
+              </dd>
             </dl>
 
             <dl className="memoTotal">
-              <dt><h5 className="tit">MEMO</h5></dt>
+              <dt>
+                <h5 className="tit">MEMO</h5>
+              </dt>
               <dd>
                 <div className="memoTextarea">
                   {/* 퍼블은 defaultValue/readOnly였지만 기능 유지 위해 value 바인딩 */}
-                  <textarea
-                    placeholder="메모 입력 영역"
-                    rows={5}
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                  />
+                  <textarea placeholder="메모 입력 영역" rows={5} value={text} onChange={(e) => setText(e.target.value)} />
                   <div className="btnWrap">
                     {/* 퍼블 버튼 클래스 유지, 기능 연결 */}
-                    <button
-                      type="button"
-                      className="btnDel"
-                      onClick={handleDelete}
-                      disabled={saving}
-                    >
+                    <button type="button" className="btnDel" onClick={handleDelete} disabled={saving}>
                       <span>삭제</span>
                     </button>
-                    <button
-                      type="button"
-                      className="btnConfirm"
-                      onClick={handleSave}
-                      disabled={saving}
-                    >
+                    <button type="button" className="btnConfirm" onClick={handleSave} disabled={saving}>
                       <span>{saving ? '저장중...' : '저장'}</span>
                     </button>
                   </div>
@@ -378,18 +332,8 @@ export default function List({ listData }: ListProps) {
       </Dialog>
 
       {/* Snackbar 토스트 */}
-      <Snackbar
-        open={snOpen}
-        autoHideDuration={2500}
-        onClose={() => setSnOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert
-          onClose={() => setSnOpen(false)}
-          severity={snSev}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
+      <Snackbar open={snOpen} autoHideDuration={2500} onClose={() => setSnOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert onClose={() => setSnOpen(false)} severity={snSev} variant="filled" sx={{ width: '100%' }}>
           {snText}
         </Alert>
       </Snackbar>

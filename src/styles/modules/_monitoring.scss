@@ -54,7 +54,7 @@
               color: var(--co-white);
               font-size: 1.2rem;
               font-weight: 500;
-              height: 2.2rem;
+              height: 1.8rem;
               padding: 0 0.4rem;
               border-radius: 0.5rem;
               background-color: var(--co-gray);
@@ -71,6 +71,9 @@
               }
               &[data-status='alarm'] {
                 background-color: var(--state-alarm);
+              }
+              &[data-status='completion'] {
+                background-color: var(--state-completion);
               }
               // &[data-status='normal'] {
               //   background-color: #45d141;
@@ -121,25 +124,40 @@
           }
         }
         .bodyArea {
-          @include flexArea($gap: 0.3rem, $wrap: wrap);
+          @include flexArea($wrap: wrap);
           dl {
             @include flexArea($justify: space-between, $width: 100%);
-            padding: 0.3rem 0.6rem;
+            padding: 0 0.4rem;
             background-color: var(--co-white);
             border: 1px solid #ddd;
-            border-radius: 0.5rem;
+            height: 2.1rem;
             dt {
               @include flexArea($gap: 0.2rem);
               font-size: 1.2rem;
               white-space: nowrap;
               small {
-                font-size: 1rem;
+                font-size: 0.8rem;
                 color: #555;
               }
             }
             dd {
               font-size: 1.2rem;
               font-weight: 600;
+            }
+            + dl {
+              margin-top: -1px;
+            }
+            &:first-child {
+              border-radius: 0.5rem 0.5rem 0 0;
+            }
+            &:last-child {
+              border-radius: 0 0 0.5rem 0.5rem;
+            }
+            &.on {
+              dt,
+              dd {
+                color: #ff0000;
+              }
             }
           }
         }
@@ -150,7 +168,7 @@
             li {
               flex: 1;
               position: relative;
-              padding-bottom: 2rem;
+              padding-bottom: 0.5rem;
               &::before {
                 content: '';
                 position: absolute;
@@ -182,7 +200,7 @@
                 }
                 > span {
                   color: var(--co-black);
-                  font-weight: 600;
+                  font-weight: 5 00;
                 }
               }
             }
@@ -204,10 +222,10 @@
           &::before {
             content: '';
             position: absolute;
-            top: -0.8rem;
-            left: -0.3rem;
-            width: 1.6rem;
-            height: 1.6rem;
+            top: -1rem;
+            right: 0.3rem;
+            width: 2.2rem;
+            height: 2.2rem;
             background-image: url('../../assets/images/icon/check.png');
             background-size: contain;
             z-index: 1;
@@ -216,15 +234,15 @@
 
         &[data-status='rest'] {
           .inner {
-            background-color: #edf7ff;
+            background-color: #f2f4fb;
             border: 1px solid var(--state-rest);
             box-shadow: 0 0.3rem 0.8rem var(--state-rest);
           }
-          // .bottomArea {
-          //   .cycle li.isActive::before {
-          //     background-color: #ed4c3a;
-          //   }
-          // }
+          .bottomArea {
+            .cycle li.isActive::before {
+              background-color: var(--state-rest);
+            }
+          }
         }
         &[data-status='ongoing'] {
           .inner {
@@ -232,23 +250,23 @@
             border: 1px solid var(--state-ongoing);
             box-shadow: 0 0.3rem 0.8rem var(--state-ongoing);
           }
-          // .bottomArea {
-          //   .cycle li.isActive::before {
-          //     background-color: #ed4c3a;
-          //   }
-          // }
+          .bottomArea {
+            .cycle li.isActive::before {
+              background-color: var(--state-ongoing);
+            }
+          }
         }
         &[data-status='stop'] {
           .inner {
             background-color: #fffdef;
-            border: 1px solid var(--state-stop);
-            box-shadow: 0 0.3rem 0.8rem var(--state-stop);
+            border: 1px solid var(--state-stop2);
+            box-shadow: 0 0.3rem 0.8rem var(--state-stop2);
           }
-          // .bottomArea {
-          //   .cycle li.isActive::before {
-          //     background-color: #ed4c3a;
-          //   }
-          // }
+          .bottomArea {
+            .cycle li.isActive::before {
+              background-color: var(--state-stop2);
+            }
+          }
         }
         &[data-status='alarm'] {
           .inner {
@@ -256,11 +274,23 @@
             border: 1px solid var(--state-alarm);
             box-shadow: 0 0.3rem 0.8rem var(--state-alarm);
           }
-          // .bottomArea {
-          //   .cycle li.isActive::before {
-          //     background-color: #ed4c3a;
-          //   }
-          // }
+          .bottomArea {
+            .cycle li.isActive::before {
+              background-color: var(--state-alarm);
+            }
+          }
+        }
+        &[data-status='completion'] {
+          .inner {
+            background-color: #edf7ff;
+            border: 1px solid var(--state-completion);
+            box-shadow: 0 0.3rem 0.8rem var(--state-completion);
+          }
+          .bottomArea {
+            .cycle li.isActive::before {
+              background-color: var(--state-completion);
+            }
+          }
         }
 
         &[data-shutdown='shutdown'] {
@@ -294,7 +324,7 @@
           &[data-status='stop'] {
             .inner {
               &::after {
-                border-color: var(--state-stop);
+                border-color: var(--state-stop2);
               }
             }
           }
@@ -302,6 +332,13 @@
             .inner {
               &::after {
                 border-color: var(--state-alarm);
+              }
+            }
+          }
+          &[data-status='completion'] {
+            .inner {
+              &::after {
+                border-color: var(--state-completion);
               }
             }
           }
@@ -432,23 +469,22 @@
 
           &[data-operation='ongoing'] {
             .inner {
-              background-color: rgba(69, 209, 65, 0.05);
-              border-color: #45d141;
+              border-color: var(--state-ongoing);
               box-shadow: 0 0.4rem 0.8rem rgba(69, 209, 65, 0.2);
             }
           }
           &[data-operation='stop'] {
             .inner {
               border-width: 0.3rem;
-              background-color: rgba(233, 57, 53, 0.05);
-              border-color: #e93935;
+              background-color: #fff3f3;
+              border-color: var(--state-alarm);
               box-shadow: 0 0.4rem 0.8rem rgba(233, 57, 53, 0.2);
             }
           }
           &[data-operation='completion'] {
             .inner {
-              background-color: rgba(34, 177, 245, 0.05);
-              border-color: #22b1f5;
+              background-color: #f1faff;
+              border-color: var(--state-completion);
               box-shadow: 0 0.4rem 0.8rem rgba(34, 177, 245, 0.1);
             }
           }

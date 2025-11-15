@@ -3,18 +3,36 @@
 
 .filterCont {
   margin-bottom: 1rem;
+  padding: 2rem;
+  border: 1px solid #ccc;
+  border-radius: 0.6rem;
+  background-color: #f8f8f8;
   .innerWrap {
+    justify-content: flex-start;
+    + .innerWrap {
+      margin-top: 2rem;
+    }
     @include flexArea($gap: 1.6rem, $width: 100%, $justify: flex-start);
-    padding: 2rem;
-    border: 1px solid #ccc;
-    border-radius: 0.6rem;
-    background-color: #f8f8f8;
+    width: calc(100% - 20rem);
     .formCont {
+      &:has(.datePicker) {
+        flex: none;
+      }
+      flex: 1;
       @include flexArea($gap: 0.6rem);
       .tit {
         font-size: 1.4rem;
         font-weight: 500;
         white-space: nowrap;
+      }
+      .MuiSelect-root {
+        flex: 1;
+        .MuiSelect-select {
+          width: 100%;
+        }
+      }
+      .datePicker .MuiPickersInputBase-root {
+        width: 21rem;
       }
     }
     .btnSch {

@@ -39,7 +39,7 @@ aside.gridWrapper {
                 display: inline-block;
                 height: 2.2rem;
                 &.isFin {
-                  width: 4.9rem;
+                  width: 7rem;
                   background: url(../../assets/images/icon/check_fin.png) no-repeat;
                   background-size: contain;
                 }
@@ -51,11 +51,9 @@ aside.gridWrapper {
               }
             }
             &.state {
+              color: #ff0000;
               &[data-state='caution'] {
                 color: #ff6600;
-              }
-              &[data-state='warning'] {
-                color: #ff0000;
               }
             }
             &.notice {
@@ -89,7 +87,8 @@ aside.detailAside {
   background-color: #f9f9f9;
   border: 1px solid #ccc;
   margin-top: 5.5rem;
-  min-height: 53rem;
+  min-height: 68.5rem;
+  box-shadow: 0 0.6rem 0.6rem rgba(0, 0, 0, 0.1);
   .inner {
     position: relative;
     .tit {
@@ -136,7 +135,7 @@ aside.detailAside {
       right: 0;
       top: 0;
       &.fin {
-        width: 7.4rem;
+        width: 8.7rem;
         background: url(../../assets/images/icon/check_fin.png) right center no-repeat;
         background-size: contain;
       }
@@ -164,6 +163,13 @@ aside.detailAside {
         font-weight: 500;
         color: #0009ff;
       }
+    }
+    .time {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: #555;
+      margin-bottom: 2rem;
+      color: #0009ff;
     }
     dl {
       @include flexArea($gap: 1rem, $justify: flex-start);

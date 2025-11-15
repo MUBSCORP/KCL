@@ -5,8 +5,11 @@
   @include flexArea($align: center, $justify: space-between);
   min-width: var(--min-width);
   padding: 1.5rem 3rem;
+  border-bottom: 1px solid #ccc;
+  background-color: #fff;
+  margin-bottom: 1.2rem;
   > .left {
-    @include flexArea($align: center, $justify: flex-start, $gap: 5.2rem);
+    @include flexArea($align: center, $justify: flex-start, $gap: 3rem);
     .compTit {
       @include flexArea($align: center, $gap: 0.6rem);
       font-size: 2.4rem;
@@ -20,21 +23,27 @@
     .searchArea {
       @include flexArea($align: center, $justify: flex-start, $gap: 2rem);
       .schInput {
-        @include flexArea;
+        @include flexArea($justify: flex-start);
+        position: relative;
         min-width: 23.2rem;
         position: relative;
         border-radius: 0;
         box-shadow: none;
+        .MuiInputBase-root {
+          width: 100%;
+        }
         input {
+          width: 100%;
           height: 3rem;
-          padding: 0 3rem 0 1rem;
+          padding: 0 3.6rem;
           font-size: 1.4rem;
-          border: 1px solid var(--co-border);
-          border-radius: 0.6rem 0 0 0.6rem;
+          border: 1px solid #999;
+          border-radius: 0.6rem;
+          box-shadow: none;
         }
         .btnClear {
           position: absolute;
-          right: 5rem;
+          right: 1rem;
           width: 1.6rem;
           height: 1.6rem;
           border-radius: 50%;
@@ -45,10 +54,12 @@
           }
         }
         .btnSch {
+          position: absolute;
+          left: 0;
+          top: 0;
           height: 3rem;
           padding: 0 1rem;
           font-size: 1.4rem;
-          background-color: #666;
           border-radius: 0 0.6rem 0.6rem 0;
           img {
             width: 1.6rem;
@@ -83,36 +94,37 @@
     }
   }
   > .right {
-    @include flexArea($gap: 3rem);
+    @include flexArea($gap: 2rem);
     .colorChip {
-      @include flexArea($gap: 1rem, $justify: flex-end);
+      @include flexArea($gap: 1.2rem, $justify: flex-end);
       li {
-        @include flexArea;
-        padding: 0 1rem;
+        @include flexArea($gap: 0.4rem);
         border-radius: 10rem;
         height: 2.2rem;
         line-height: 1;
         font-size: 1.2rem;
-        &.charge {
-          background-color: var(--state-charge);
-        }
-        &.rest {
-          background-color: var(--state-rest);
-        }
-        &.discharge {
-          background-color: var(--state-discharge);
-        }
-        &.rest-iso {
-          background-color: var(--state-rest-iso);
-        }
-        &.pattern {
-          background-color: var(--state-pattern);
-        }
-        &.balance {
-          background-color: var(--state-balance);
-        }
-        &.chargemap {
-          background-color: var(--state-chargemap);
+      }
+      + .btnReset {
+        position: relative;
+        gap: 0.6rem;
+        color: var(--co-white);
+        height: 3.6rem;
+        font-size: 1.8rem;
+        font-weight: 600;
+        padding: 0 2rem;
+        background: #222;
+        border: 1px solid #000;
+        border-radius: 0.6rem;
+        box-shadow: 0 0.4rem 0.4rem rgba(0, 0, 0, 0.25);
+        &:before {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 50%;
+          top: 0;
+          left: 0;
+          border-radius: 0.6rem 0.6rem 0 0;
+          background-color: rgba(255, 255, 255, 0.2);
         }
       }
       &.type2 {
@@ -149,18 +161,6 @@
               background-color: var(--state-available);
             }
           }
-        }
-        + .btnReset {
-          gap: 0.6rem;
-          color: var(--co-white);
-          height: 3.6rem;
-          font-size: 1.8rem;
-          font-weight: 600;
-          padding: 0 2rem;
-          background-color: #009dff;
-          border: 1px solid #006fb4;
-          border-radius: 0.6rem;
-          box-shadow: 0 0.4rem 0.4rem rgba(0, 0, 0, 0.25);
         }
       }
     }

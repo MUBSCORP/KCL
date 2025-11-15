@@ -24,13 +24,26 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
         <div className={`tag ${selectedLog.processed ? 'fin' : 'info'}`} />
         <p className="msg" dangerouslySetInnerHTML={{ __html: selectedLog.message }} />
         <p className="sol" dangerouslySetInnerHTML={{ __html: selectedLog.solution }} />
-        <dl>
-          <dt>발생시간</dt>
-          <dd className="co-blue">{selectedLog.time}</dd>
-        </dl>
+        {selectedLog?.time?.trim() && <p className="time">{selectedLog.time}</p>}
         <dl>
           <dt>장비</dt>
           <dd className="co-blue">{selectedLog.equipment}</dd>
+        </dl>
+        <dl>
+          <dt>채널</dt>
+          <dd className="co-blue">{selectedLog.channel}</dd>
+        </dl>
+        <dl>
+          <dt>현상</dt>
+          <dd className="co-blue">{selectedLog.phenomenon}</dd>
+        </dl>
+        <dl>
+          <dt>BatteryID</dt>
+          <dd className="co-blue">{selectedLog.batteryID}</dd>
+        </dl>
+        <dl>
+          <dt>발생시간</dt>
+          <dd className="co-blue">{selectedLog.time}</dd>
         </dl>
         <dl>
           <dt>담당자</dt>
@@ -42,7 +55,7 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
         </dl>
         <div className="btnWrap">
           <Button className="btnDownload">
-            <span>Log download</span>
+            <span>Get Analysis Package</span>
             <i />
           </Button>
         </div>

@@ -11,7 +11,7 @@ interface ChartProps {
 export default function ChartOperation({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const colors = ['#45D141', '#E93935', '#22B1F5', '#AAA'];
+  const colors = ['#008CFF', '#45D141', '#FFEE00', '#FF2626'];
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -46,7 +46,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
             ...data.reduce(
               (acc, d, i) => {
                 acc[`b${i}`] = {
-                  color: '#fff',
+                  color: '#000',
                   backgroundColor: colors[i],
                   borderRadius: 3,
                   padding: [3, 4, 1],

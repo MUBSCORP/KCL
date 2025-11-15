@@ -11,6 +11,9 @@ interface ChartProps {
 export default function ChartStatus({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
+  const colors = ['#FFD1CC', '#CCE5F4', '#FFF5CC', '#E6FFCC', '#E6D5ED', '#FFDCEC'];
+  const colorsBorder = ['#FF9B91', '#6FB8E3', '#EBCE54', '#B8E886', '#DCAAF1', '#F6A8CC'];
+
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   useEffect(() => {
@@ -31,10 +34,34 @@ export default function ChartStatus({ title, data }: ChartProps) {
         right: 0,
         top: 'center',
         icon: 'circle',
-        itemWidth: 6,
-        itemHeight: 6,
-        textStyle: { fontSize: 10 },
-      },
+        itemWidth: 0,
+        itemHeight: 0,
+        formatter: (name: string) => {
+          const idx = data.findIndex((d) => d.name === name);
+          return `{b${idx}|${name}}`;
+        },
+        textStyle: {
+          fontSize: 10,
+          rich: {
+            a: { width: 50 },
+            ...data.reduce(
+              (acc, d, i) => {
+                acc[`b${i}`] = {
+                  color: '#000',
+                  backgroundColor: colors[i],
+                  borderColor: colorsBorder[i],
+                  borderWidth: 1,
+                  borderRadius: 3,
+                  padding: [3, 4, 1],
+                  align: 'right',
+                };
+                return acc;
+              },
+              {} as Record<string, any>,
+            ),
+          },
+        } as any,
+      } as echarts.LegendComponentOption,
       series: [
         {
           name: '장비현황',
@@ -77,7 +104,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '25rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '26rem', height: '10.4rem' }} />
     </div>
   );
 }

@@ -106,7 +106,7 @@
                     background-color: var(--state-ongoing);
                   }
                   &[data-type='stop'] {
-                    background-color: var(--state-stop);
+                    background-color: var(--state-alarm);
                   }
                   &[data-type='completion'] {
                     background-color: var(--state-completion);

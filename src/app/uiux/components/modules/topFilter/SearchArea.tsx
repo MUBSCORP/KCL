@@ -7,7 +7,7 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
 import Image from 'next/image';
-import SearchIcon from '@/assets/images/icon/search.png';
+import SearchIcon from '@/assets/images/icon/search_b.png';
 import CloseIcon from '@mui/icons-material/Close';
 
 interface ChipData {
@@ -36,7 +36,7 @@ export default function SearchArea() {
   return (
     <div className="searchArea">
       <Paper className="schInput" component="form">
-        <InputBase value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="검색어입력" inputProps={{ 'aria-label': '검색어 입력' }} />
+        <InputBase value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="검색어를 입력해 주세요." inputProps={{ 'aria-label': '검색어 입력' }} />
         {searchText && (
           <IconButton className="btnClear" type="button" aria-label="입력삭제" onClick={handleClear}>
             <CloseIcon />

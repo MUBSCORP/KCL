@@ -1,5 +1,69 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
+import useSWR from 'swr';
+import React from 'react';
+
+// ===============================
+// 🔹 ListType2에서 타입 끌어오기
+// ===============================
+import List2 from '@/app/public/components/modules/monitoring/ListType2';
+
+// List2가 실제로 받는 listData 원소 타입을 그대로 가져온다.
+type List2Props = React.ComponentProps<typeof List2>;
+type ListItem = List2Props['listData'][number];
+
+// ===============================
+// 🔹 백엔드 MonitoringItem 타입(공통)
+// ===============================
+export type MonitoringItem = {
+  id: number;             // 백엔드에서 오는 고유 ID (int)
+  title: string;
+  check: boolean;
+  schedule: string;
+  memo: boolean;
+  memoText: any;
+  operation: string;       // charge | discharge | rest | ...
+  status: string;          // rest / ongoing / stop / alarm / completion ...
+  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람 / 완료
+  voltage: string;
+  current: string;
+  power: string;
+  step: string;
+  cycle: string;
+  rly: string;
+  dgv?: string;
+  chamber?: string;
+  temp: string;
+  humidity: string;
+  cycles: number;
+  activeCycles: number;
+  time: string;
+  x?: number;
+  y?: number;
+  eqpid?: string;
+  channelIndex?: number;
+  shutdown?: boolean;
+  powerOn?: boolean;
+};
+
+// ===============================
+// 🔹 통신 설정
+// ===============================
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? '';
+const LIST_API = `${API_BASE_URL}/api/monitoring/CELL/list`;      // ✅ CELL용
+const SSE_URL = `${API_BASE_URL}/api/monitoring/sse/telemetry`;   // ✅ PACK과 동일 SSE 브로드캐스팅
+
+const fetcher = async (path: string) => {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as MonitoringItem[];
+};
+
+// ===============================
+// 🔹 디자인 퍼블 컴포넌트 import
+// ===============================
+
 // topState
 import ChartRunning from '@/app/public/components/modules/topState/ChartRunning';
 import ChartState from '@/app/public/components/modules/topState/ChartState';
@@ -14,1512 +78,233 @@ import SearchArea from '@/app/public/components/modules/topFilter/SearchArea';
 import PageTitle from '@/app/public/components/modules/PageTitle';
 import titleIcon from '@/assets/images/icon/detail3.png';
 
-// monitoring
-import List2 from '@/app/public/components/modules/monitoring/ListType2';
+export default function DashboardCell() {
+  // ===============================
+  // 1) CELL 목록 로딩
+  // ===============================
+  const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
+    refreshInterval: 0,
+    revalidateOnFocus: false,
+  });
+  const loading = !listData && !error;
 
-export default function DashboardPack() {
-  // --- Chart Data ---
-  const chartData = { total: 20, running: 15 };
-  const chartData2 = [
-    { name: 'Charge', value: 20 },
-    { name: 'Discharge', value: 15 },
-    { name: 'Rest', value: 10 },
-    { name: 'Rest(ISO)', value: 10 },
-    { name: 'Pattern', value: 15 },
-    { name: 'ChargeMap', value: 10 },
-  ];
-  const chartData3 = [
-    { name: '진행중', value: 13 },
-    { name: '정지', value: 2 },
-    { name: '완료', value: 1 },
-    { name: '사용가능', value: 1 },
-  ];
-  const chartData4 = [
-    { name: '방전', value: 280 },
-    { name: '충전', value: 580 },
-  ];
-  const chartData5 = [
-    { name: '1', charge: 30, discharge: 50 },
-    { name: '2', charge: 60, discharge: 20 },
-    { name: '3', charge: 40, discharge: 50 },
-    { name: '4', charge: 30, discharge: 50 },
-    { name: '5', charge: 60, discharge: 20 },
-    { name: '6', charge: 40, discharge: 50 },
-  ];
+  // ===============================
+  // 2) SSE - 백엔드 브로드캐스트로 갱신
+  // ===============================
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  // --- Monitoring List Data ---
-  const listData = [
-    {
-      id: 1, // id
-      x: 1, // x 좌표
-      y: 1, // y 좌표
-      title: '300A-1A', // 타이틀
-      check: true, // 체크표시
-      ready: false, // '신규장비 업데이트 예정' 표시
-      shutdown: true, // 테두리 점등
-      operation: 'ongoing', // 공정: ongoing, completion, available, stop
-      icon: 'success', // 아이콘: success, stay, error
-      temp1: '17℃', // 온도 1
-      temp2: '25℃', // 온도 2
-      ch1: 8, // 채널 1
-      ch2: 0, // 채널 2
-      ch3: 0, // 채널 3
-      memo: true, // 메모
-      memoText: [
-        // 메모 내용
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '비고: 00만 km RPT 측정 후 내구 재개 [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우', // 메모 textarea
-    },
-    {
-      id: 3,
-      x: 3,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '3',
-    },
-    {
-      id: 4,
-      x: 4,
-      y: 1,
-      title: '300A-4A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '4',
-    },
-    {
-      id: 5,
-      x: 5,
-      y: 1,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '5',
-    },
-    {
-      id: 6,
-      x: 6,
-      y: 1,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'stop',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '6',
-    },
-    {
-      id: 7,
-      x: 7,
-      y: 1,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '7',
-    },
-    {
-      id: 8,
-      x: 8,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 9,
-      x: 9,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 10,
-      x: 10,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 11,
-      x: 11,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 0,
-      ch2: 0,
-      ch3: 0,
-      memo: false,
-      memoText: [],
-      memoTotal: '8',
-    },
-    {
-      id: 12,
-      x: 12,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'stop',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 13,
-      x: 13,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 14,
-      x: 14,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 15,
-      x: 15,
-      y: 1,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    // *
-    // * line 2
-    // *
-    {
-      id: 2_1,
-      x: 1,
-      y: 2,
-      title: '300A-1A',
-      check: true,
-      ready: false,
-      shutdown: true,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '비고: 00만 km RPT 측정 후 내구 재개 [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우',
-    },
-    {
-      id: 2_3,
-      x: 3,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '3',
-    },
-    {
-      id: 2_4,
-      x: 4,
-      y: 2,
-      title: '300A-4A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '4',
-    },
-    {
-      id: 2_5,
-      x: 5,
-      y: 2,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '5',
-    },
-    {
-      id: 2_6,
-      x: 6,
-      y: 2,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'stop',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '6',
-    },
-    {
-      id: 2_7,
-      x: 7,
-      y: 2,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '7',
-    },
-    {
-      id: 2_8,
-      x: 8,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 2_9,
-      x: 9,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 2_10,
-      x: 10,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 2_11,
-      x: 11,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 0,
-      ch2: 0,
-      ch3: 0,
-      memo: false,
-      memoText: [],
-      memoTotal: '8',
-    },
-    {
-      id: 2_12,
-      x: 12,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'stop',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 2_13,
-      x: 13,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 2_14,
-      x: 14,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 2_15,
-      x: 15,
-      y: 2,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    // *
-    // * line 3
-    // *
-    {
-      id: 3_1,
-      x: 1,
-      y: 3,
-      title: '300A-1A',
-      check: true,
-      ready: false,
-      shutdown: true,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '비고: 00만 km RPT 측정 후 내구 재개 [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우',
-    },
-    {
-      id: 3_15,
-      x: 15,
-      y: 3,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    // *
-    // * line 4
-    // *
-    {
-      id: 4_1,
-      x: 1,
-      y: 4,
-      title: '300A-1A',
-      check: true,
-      ready: false,
-      shutdown: true,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '비고: 00만 km RPT 측정 후 내구 재개 [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우',
-    },
-    {
-      id: 4_3,
-      x: 3,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '3',
-    },
-    {
-      id: 4_4,
-      x: 4,
-      y: 4,
-      title: '300A-4A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '4',
-    },
-    {
-      id: 4_5,
-      x: 5,
-      y: 4,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '5',
-    },
-    {
-      id: 4_6,
-      x: 6,
-      y: 4,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'stop',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '6',
-    },
-    {
-      id: 4_7,
-      x: 7,
-      y: 4,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '7',
-    },
-    {
-      id: 4_8,
-      x: 8,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 4_9,
-      x: 9,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 4_10,
-      x: 10,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 4_11,
-      x: 11,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 0,
-      ch2: 0,
-      ch3: 0,
-      memo: false,
-      memoText: [],
-      memoTotal: '8',
-    },
-    {
-      id: 4_13,
-      x: 13,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 4_14,
-      x: 14,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 4_15,
-      x: 15,
-      y: 4,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    // *
-    // * line 5
-    // *
-    {
-      id: 5_1,
-      x: 1,
-      y: 5,
-      title: '300A-1A',
-      check: true,
-      ready: false,
-      shutdown: true,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '비고: 00만 km RPT 측정 후 내구 재개 [250923-24] 칠러 냉각수 보증 시험 일시정지 _이정우',
-    },
-    {
-      id: 5_3,
-      x: 3,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '3',
-    },
-    {
-      id: 5_4,
-      x: 4,
-      y: 5,
-      title: '300A-4A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '4',
-    },
-    {
-      id: 5_5,
-      x: 5,
-      y: 5,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '5',
-    },
-    {
-      id: 5_6,
-      x: 6,
-      y: 5,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'stop',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '6',
-    },
-    {
-      id: 5_7,
-      x: 7,
-      y: 5,
-      title: '신규장비 업데이트 예정',
-      check: false,
-      ready: true,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'error',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '7',
-    },
-    {
-      id: 5_8,
-      x: 8,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 5_9,
-      x: 9,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 5_10,
-      x: 10,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 5_11,
-      x: 11,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 0,
-      ch2: 0,
-      ch3: 0,
-      memo: false,
-      memoText: [],
-      memoTotal: '8',
-    },
-    {
-      id: 5_13,
-      x: 13,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'ongoing',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 5_14,
-      x: 14,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'completion',
-      icon: 'stay',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-    {
-      id: 5_15,
-      x: 15,
-      y: 5,
-      title: '300A-3A',
-      check: false,
-      ready: false,
-      shutdown: false,
-      operation: 'available',
-      icon: 'success',
-      temp1: '17℃',
-      temp2: '25℃',
-      ch1: 8,
-      ch2: 0,
-      ch3: 0,
-      memo: true,
-      memoText: [
-        { ch: 'CH 9', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 10', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 11', status: 'completion', statusText: '완료', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 12', status: 'available', statusText: '사용가능', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 13', status: 'ongoing', statusText: '진행중', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-        { ch: 'CH 14', status: 'stop', statusText: '정지', text: 'LME2-00105', text2: 'CC Cycle (45℃)' },
-      ],
-      memoTotal: '8',
-    },
-  ];
+    const es = new EventSource(SSE_URL);
+    es.onopen = () => console.info('[CELL SSE] connected:', SSE_URL);
+    es.onmessage = () => {
+      // 백엔드에서 브로드캐스팅 될 때마다 목록 재검증
+      mutate();
+    };
+    es.onerror = (err) => console.error('[CELL SSE] error', err);
 
+    return () => {
+      console.info('[CELL SSE] disconnected');
+      es.close();
+    };
+  }, [mutate]);
+
+  // ===============================
+  // 3) 검색 키워드 상태 (SearchArea 연동)
+  // ===============================
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
+
+  // ===============================
+  // 4) MonitoringItem -> ListItem (List2용 UI 구조) 매핑
+  // ===============================
+  const uiList: ListItem[] = useMemo(() => {
+    const src = listData ?? [];
+
+    const keys = searchKeywords
+      .map((k) => k.trim().toLowerCase())
+      .filter(Boolean);
+
+    return src.map<ListItem>((item) => {
+      const title = item.title || item.eqpid || '';
+      const eqpid = item.eqpid?.toLowerCase() ?? '';
+
+      const match =
+        !keys.length ||
+        keys.some((kw) => title.toLowerCase().includes(kw) || eqpid.includes(kw));
+
+      // operation/status → 퍼블용 상태 아이콘/operation 매핑
+      let op: ListItem['operation'] = 'available';
+      if (item.status === 'ongoing' || item.statusLabel === '진행중') op = 'ongoing';
+      else if (item.statusLabel === '완료') op = 'completion';
+      else if (item.status === 'stop' || item.statusLabel === '일시정지') op = 'stop';
+      else op = 'available';
+
+      let icon: ListItem['icon'] = 'success';
+      if (item.statusLabel === '알람' || item.status === 'alarm') icon = 'error';
+      else if (item.statusLabel === '대기' || item.status === 'rest') icon = 'stay';
+
+      // ready / shutdown 플래그
+      const ready = item.statusLabel === '대기' || item.status === 'rest';
+      const shutdown =
+        item.status === 'alarm' || item.statusLabel === '알람' || item.shutdown === true;
+
+      // 온도/습도 → temp1/temp2로 표시 (퍼블 구조 맞춤)
+      const temp1 = item.temp ? `${item.temp}` : '';
+      const temp2 = item.humidity ? `${item.humidity}` : '';
+
+      // 메모는 백엔드 구조 그대로 사용 (없으면 빈 배열/문자열)
+      const memoText =
+        Array.isArray(item.memoText) ? item.memoText : item.memoText ? [item.memoText] : [];
+      const memoTotal = item.schedule || item.time || '';
+
+      // ✅ 여기서 id는 number로 강제 (ListItem.id가 number이기 때문)
+      const id = Number(item.id ?? 0);
+
+      // CH 숫자 → activeCycles, cycles에서 적당히 매핑
+      const ch1 = item.activeCycles ?? 0;
+      const ch2 = 0;
+      const ch3 = 0;
+
+      return {
+        id,                  // ✅ number
+        x: item.x ?? 0,
+        y: item.y ?? 0,
+        title,
+        check: match,        // 검색되면 체크, 아니면 false
+        ready,
+        shutdown,
+        operation: op,
+        icon,
+        temp1,
+        temp2,
+        ch1,
+        ch2,
+        ch3,
+        memo: !!item.memo,
+        memoText,
+        memoTotal,
+      };
+    });
+  }, [listData, searchKeywords]);
+
+  // ===============================
+  // 5) 상단 차트용 집계 (CELL도 구조 동일하게)
+  // ===============================
+  const { runningChart, opDistChart, status4Chart, todayChart, monthChart } = useMemo(() => {
+    if (!listData?.length) {
+      return {
+        runningChart: { total: 0, running: 0 },
+        opDistChart: [] as { name: string; value: number }[],
+        status4Chart: [] as { name: string; value: number }[],
+        todayChart: [
+          { name: '방전', value: 0 },
+          { name: '충전', value: 0 },
+        ],
+        monthChart: [] as { name: string; charge: number; discharge: number }[],
+      };
+    }
+
+    const total = listData.length;
+
+    const running = listData.filter(
+      (i) =>
+        i.status === 'run' ||
+        i.status === 'ongoing' ||
+        i.statusLabel === '진행중',
+    ).length;
+
+    const opBuckets: Record<string, number> = {
+      Charge: 0,
+      Discharge: 0,
+      Rest: 0,
+      'Rest(ISO)': 0,
+      Pattern: 0,
+      Balance: 0,
+      Chargemap: 0,
+    };
+
+    listData.forEach((i) => {
+      const op = (i.operation || '').toLowerCase();
+      if (op === 'charge') opBuckets.Charge++;
+      else if (op === 'discharge') opBuckets.Discharge++;
+      else if (op === 'rest-iso') opBuckets['Rest(ISO)']++;
+      else if (op === 'pattern') opBuckets.Pattern++;
+      else if (op === 'balance') opBuckets.Balance++;
+      else if (op === 'chargemap') opBuckets.Chargemap++;
+      else opBuckets.Rest++;
+    });
+
+    const opDistChart = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
+
+    const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
+      대기: 0,
+      진행중: 0,
+      일시정지: 0,
+      알람: 0,
+    };
+
+    listData.forEach((i) => {
+      const label = i.statusLabel;
+      if (label === '대기') statusBuckets['대기']++;
+      else if (label === '일시정지') statusBuckets['일시정지']++;
+      else if (label === '알람') statusBuckets['알람']++;
+      else statusBuckets['진행중']++;
+    });
+
+    const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({
+      name,
+      value,
+    }));
+
+    const todayChart = [
+      { name: '방전', value: 0 },
+      { name: '충전', value: 0 },
+    ];
+    const monthChart: { name: string; charge: number; discharge: number }[] = [];
+
+    return {
+      runningChart: { total, running },
+      opDistChart,
+      status4Chart,
+      todayChart,
+      monthChart,
+    };
+  }, [listData]);
+
+  // ===============================
+  // 6) 렌더링
+  // ===============================
   return (
     <>
       {/* --- topState Section --- */}
       <section className="topState">
         <h2 className="ir">상단 기능 화면</h2>
         <div className="left">
-          <ChartRunning title="장비가동률" total={chartData.total} running={chartData.running} />
-          <ChartState title="장비현황" data={chartData2} />
-          <ChartOperation title="장비가동현황" data={chartData3} />
+          <ChartRunning
+            title="장비가동률"
+            total={runningChart.total}
+            running={runningChart.running}
+          />
+          <ChartState title="장비현황" data={opDistChart} />
+          <ChartOperation title="장비가동현황" data={status4Chart} />
         </div>
         <div className="center">
           <TopStateCenter equipType="CELL" />
         </div>
         <div className="right">
-          <ChartToday title="오늘 전력량" data={chartData4} />
+          <ChartToday title="오늘 전력량" data={todayChart} />
           <ul className="legend">
             <li className="charge">충전</li>
             <li>방전</li>
           </ul>
-          <ChartMonth title="월별 전력량" data={chartData5} />
+          <ChartMonth title="월별 전력량" data={monthChart} />
         </div>
       </section>
 
       {/* --- topFilter Section --- */}
       <section className="topFilter">
         <div className="left">
-          <PageTitle title="장비상세" icon={titleIcon} />
-          <SearchArea />
+          <PageTitle title="CELL 상세" icon={titleIcon} />
+          <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">
           <ColorChipType2 />
@@ -1530,7 +315,9 @@ export default function DashboardPack() {
       <section className="monitoring type2">
         <h2 className="ir">모니터링 화면</h2>
         <div className="innerWrapper">
-          <List2 listData={listData} />
+          {loading && <div className="loading">불러오는 중…</div>}
+          {error && <div className="error">목록을 불러오지 못했습니다.</div>}
+          {uiList && <List2 listData={uiList} />}
         </div>
       </section>
     </>

@@ -3,7 +3,58 @@
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
-// ===== 디자인 퍼블 경로 유지 =====
+// ===============================
+// 타입 정의 (운영 구조 + 퍼블 구조 반영)
+// ===============================
+export type MonitoringItem = {
+  id: number;
+  title: string;
+  check: boolean;
+  schedule: string;
+  memo: boolean;
+  memoText: string;
+  operation: string;       // charge | discharge | rest | rest-iso | pattern | balance | chargemap | pause | error ...
+  status: string;          // rest / ongoing / stop / alarm / completion ...
+  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람 / 완료
+  voltage: string;
+  current: string;
+  power: string;
+  step: string;
+  cycle: string;
+  rly: string;
+  dgv?: string;            // 옛 퍼블에서 쓰던 필드 (있으면 사용)
+  chamber?: string;        // 새 퍼블에서 사용하는 챔버/온도 값
+  temp: string;
+  humidity: string;
+  cycles: number;
+  activeCycles: number;
+  time: string;
+  x?: number;
+  y?: number;
+  eqpid?: string;
+  channelIndex?: number;
+  shutdown?: boolean;      // 테두리 점등
+  powerOn?: boolean;       // 파워 볼드/레드 표시
+};
+
+// ===============================
+// 통신 도구
+// ===============================
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? '';
+const LIST_API = `${API_BASE_URL}/api/monitoring/PACK/list`;
+const SSE_URL = `${API_BASE_URL}/api/monitoring/sse/telemetry`;
+
+const fetcher = async (path: string) => {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as MonitoringItem[];
+};
+
+// ===============================
+// 디자인 퍼블 경로 (uiux 기준으로 변경)
+// ===============================
+
+// topState
 import ChartRunning from '@/app/public/components/modules/topState/ChartRunning';
 import ChartState from '@/app/public/components/modules/topState/ChartState';
 import ChartOperation from '@/app/public/components/modules/topState/ChartOperation';
@@ -20,54 +71,9 @@ import titleIcon from '@/assets/images/icon/detail.png';
 // monitoring
 import List from '@/app/public/components/modules/monitoring/List';
 
-// ===============================
-// 타입 정의 (운영 구조 반영)
-// ===============================
-export type MonitoringItem = {
-  id: number;
-  title: string;
-  check: boolean;
-  schedule: string;
-  memo: boolean;
-  memoText: string;
-  operation: string;       // charge | discharge | rest | rest-iso | pattern | balance | chargemap | pause | error ...
-  status: string;          // run / rest / pause / alarm ...
-  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람 (배지 표기)
-  voltage: string;
-  current: string;
-  power: string;
-  step: string;
-  cycle: string;
-  rly: string;
-  dgv: string;
-  temp: string;
-  humidity: string;
-  cycles: number;
-  activeCycles: number;
-  time: string;
-  x?: number;
-  y?: number;
-  eqpid?: string;
-  channelIndex?: number;
-  shutdown?: boolean;
-};
-
-// ===============================
-// 통신 도구
-// ===============================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? '';
-const LIST_API = `${API_BASE_URL}/api/monitoring/PACK/list`;
-const SSE_URL = `${API_BASE_URL}/api/monitoring/sse/telemetry`;
-
-const fetcher = async (path: string) => {
-  const res = await fetch(path, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as MonitoringItem[];
-};
-
 export default function DashboardPack() {
   // ===============================
-  // ✅ 1) 장비 목록 로딩
+  // ✅ 1) 장비 목록 로딩 (실데이터)
   // ===============================
   const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
     refreshInterval: 0,
@@ -93,12 +99,16 @@ export default function DashboardPack() {
   }, [mutate]);
 
   // ===============================
-  // ✅ 3) 검색 필터
+  // ✅ 3) 검색 필터 (SearchArea 연동)
   // ===============================
   const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
+
   const displayList: MonitoringItem[] = useMemo(() => {
     const src = listData ?? [];
-    if (!searchKeywords.length) return src.map((i) => ({ ...i, check: false }));
+    if (!searchKeywords.length) {
+      // 기본적으로 check는 false로 초기화
+      return src.map((i) => ({ ...i, check: false }));
+    }
 
     const keys = searchKeywords
       .map((k) => k.trim().toLowerCase())
@@ -113,7 +123,7 @@ export default function DashboardPack() {
   }, [listData, searchKeywords]);
 
   // ===============================
-  // ✅ 4) 차트 데이터 집계
+  // ✅ 4) 차트 데이터 집계 (실데이터 → 퍼블 차트에 주입)
   // ===============================
   const { runningChart, opDistChart, status4Chart, todayChart, monthChart } = useMemo(() => {
     if (!listData?.length) {
@@ -131,9 +141,12 @@ export default function DashboardPack() {
 
     const total = listData.length;
 
-    // status (run/rest/pause/alarm) 또는 statusLabel 기반 running 수
+    // status (run/rest/pause/alarm 등) or statusLabel 기반 running 수
     const running = listData.filter(
-      (i) => i.status === 'run' || i.statusLabel === '진행중',
+      (i) =>
+        i.status === 'run' ||
+        i.status === 'ongoing' || // 새 퍼블 status 값 고려
+        i.statusLabel === '진행중',
     ).length;
 
     // === 4-1. 운전 모드 → ChartState (장비현황) ===
@@ -161,7 +174,6 @@ export default function DashboardPack() {
     const opDistChart = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
 
     // === 4-2. 상태 4종 → ChartOperation (장비가동현황) ===
-    // label: 대기 / 진행중 / 일시정지 / 알람
     const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
       대기: 0,
       진행중: 0,
@@ -174,7 +186,7 @@ export default function DashboardPack() {
       if (label === '대기') statusBuckets['대기']++;
       else if (label === '일시정지') statusBuckets['일시정지']++;
       else if (label === '알람') statusBuckets['알람']++;
-      else statusBuckets['진행중']++; // 나머지는 모두 진행중으로
+      else statusBuckets['진행중']++; // 나머지는 모두 진행중 처리
     });
 
     const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({
@@ -182,7 +194,7 @@ export default function DashboardPack() {
       value,
     }));
 
-    // === 4-3. 전력량 차트 (향후 별도 API 연동) ===
+    // === 4-3. 전력량 차트 (현재는 0, 향후 별도 API 연동) ===
     const todayChart = [
       { name: '방전', value: 0 },
       { name: '충전', value: 0 },
@@ -199,14 +211,13 @@ export default function DashboardPack() {
   }, [listData]);
 
   // ===============================
-  // ✅ 5) 렌더링 (디자인 퍼블 레이아웃 유지)
+  // ✅ 5) 렌더링 (디자인 퍼블 레이아웃 그대로 사용)
   // ===============================
   return (
     <>
       {/* topState */}
       <section className="topState">
         <h2 className="ir">상단 기능 화면</h2>
-
         <div className="left">
           <ChartRunning
             title="장비가동률"
@@ -216,11 +227,10 @@ export default function DashboardPack() {
           <ChartState title="장비현황" data={opDistChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
         </div>
-
         <div className="center">
+          {/* 퍼블 버전과 동일하게 사용 (필요하면 equipType="PACK" prop 추가 가능) */}
           <TopStateCenter equipType="PACK" />
         </div>
-
         <div className="right">
           <ChartToday title="오늘 전력량" data={todayChart} />
           <ul className="legend">
@@ -235,6 +245,7 @@ export default function DashboardPack() {
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세" icon={titleIcon} />
+          {/* 기능 유지: 검색 결과 → searchKeywords 반영 */}
           <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">

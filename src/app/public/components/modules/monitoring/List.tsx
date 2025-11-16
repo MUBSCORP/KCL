@@ -27,25 +27,35 @@ interface ListItem {
   memo: boolean;
   memoText: string;
   operation: string;
-  status: string;          // run / rest / pause / alarm ...
-  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람
+  status: string;          // run / rest / pause / alarm / ongoing ...
+  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람 / 완료
   voltage: string;
   current: string;
   power: string;
   step: string;
   cycle: string;
   rly: string;
-  dgv: string;
+
+  // 기능 버전 필드
+  dgv?: string;
+
+  // 디자인 버전 필드
+  powerOn?: boolean;
+  chamber?: string;
+
   temp: string;
   humidity: string;
   cycles: number;
   activeCycles: number;
   time: string;
 
+  // 퍼블 추가 필드(있으면 사용)
   memoTotal?: string;
+
+  // 셧다운 여부 (CSS 표시)
   shutdown?: boolean;
 
-  // 메모 API 식별자 (백엔드 연동용)
+  // 메모 API 식별자
   eqpid?: string;
   channelIndex?: number;
 }
@@ -93,7 +103,10 @@ export default function List({ listData }: ListProps) {
   const [snOpen, setSnOpen] = React.useState(false);
   const [snText, setSnText] = React.useState('');
   const [snSev, setSnSev] = React.useState<'success' | 'error' | 'info'>('info');
-  const showMsg = (msg: string, sev: 'success' | 'error' | 'info' = 'info') => {
+  const showMsg = (
+    msg: string,
+    sev: 'success' | 'error' | 'info' = 'info',
+  ) => {
     setSnText(msg);
     setSnSev(sev);
     setSnOpen(true);
@@ -105,10 +118,12 @@ export default function List({ listData }: ListProps) {
   >({});
 
   // UL 사이즈 → 카드 위치 계산용
-  const [ulSize, setUlSize] = React.useState<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
+  const [ulSize, setUlSize] = React.useState<{ width: number; height: number }>(
+    {
+      width: 0,
+      height: 0,
+    },
+  );
   const ulRef = React.useRef<HTMLUListElement | null>(null);
 
   const liWidth = ulSize.width * 0.1; // 한 줄 10개 기준
@@ -144,12 +159,13 @@ export default function List({ listData }: ListProps) {
     return { eqpid: item.eqpid, channel: item.channelIndex };
   };
 
-  // --- 모달 열기/닫기 (클릭 전용, 항상 편집 가능) ---
+  // --- 모달 열기/닫기 (항상 편집 가능) ---
   const handleClickOpen = (raw: ListItem) => {
     const item = withOverride(raw);
     setSelectedItem(item);
     setSelectedMemo(item);
-    setText(item.memoText || '');
+    // 디자인 버전: memoText가 없으면 memoTotal 표시
+    setText(item.memoText ?? item.memoTotal ?? '');
     setOpen(true);
   };
 
@@ -236,6 +252,7 @@ export default function List({ listData }: ListProps) {
 
   return (
     <>
+      {/* 퍼블 클래스/마크업 유지, 기능(클릭/메모/토스트) 그대로 */}
       <ul ref={ulRef} className="list">
         {listData.map(raw => {
           const item = withOverride(raw);
@@ -243,7 +260,7 @@ export default function List({ listData }: ListProps) {
           const x = item.x ?? 1;
           const y = item.y ?? 1;
           const left = (x - 1) * liWidth;
-          const top = (y - 1) * 416; // 한 줄 높이(디자인 기준)
+          const top = (y - 1) * 320; // 한 줄 높이(디자인 기준)
 
           // ✅ CSS가 인식할 상태 토큰
           const statusToken = mapStatusToCss(item.status, item.statusLabel);
@@ -254,12 +271,8 @@ export default function List({ listData }: ListProps) {
               data-operation={item.operation}
               data-checked={item.check ? 'checked' : undefined}
               data-shutdown={item.shutdown ? 'shutdown' : undefined}
-              // ✅ 카드 테두리/배경색용
               data-status={statusToken}
-              style={{
-                left: `${left}px`,
-                top: `${top}px`,
-              }}
+              style={{ left: `${left}px`, top: `${top}px` }}
             >
               <div className="inner">
                 <div className="topArea">
@@ -281,12 +294,12 @@ export default function List({ listData }: ListProps) {
                     <Chip
                       label={item.statusLabel}
                       className="status"
-                      // ✅ 뱃지 배경색용
                       data-status={statusToken}
                     />
                   </div>
                 </div>
 
+                {/* 숫자/상태 영역 – 디자인 버전 구조 유지 + powerOn, chamber 반영 */}
                 <div className="bodyArea">
                   <dl>
                     <dt>전압</dt>
@@ -296,13 +309,14 @@ export default function List({ listData }: ListProps) {
                     <dt>전류</dt>
                     <dd>{item.current}</dd>
                   </dl>
-                  <dl>
+                  <dl className={item.powerOn ? 'on' : ''}>
                     <dt>파워</dt>
                     <dd>{item.power}</dd>
                   </dl>
                   <dl>
                     <dt>
-                      {item.operation === 'charge' || item.operation === 'discharge'
+                      {item.operation === 'charge' ||
+                      item.operation === 'discharge'
                         ? 'S'
                         : '스텝'}
                     </dt>
@@ -317,18 +331,20 @@ export default function List({ listData }: ListProps) {
                     <dd>{item.rly}</dd>
                   </dl>
                   <dl>
-                    <dt>DGV</dt>
-                    <dd>{item.dgv}</dd>
+                    <dt>
+                      챔버<small>현재/설정</small>
+                    </dt>
+                    <dd>{item.chamber ?? item.temp}</dd>
                   </dl>
                   <dl>
                     <dt>
-                      온도<small>현재/설정</small>
+                      칠러<small>현재/유량</small>
                     </dt>
                     <dd>{item.temp}</dd>
                   </dl>
                   <dl>
                     <dt>
-                      습도<small>현재/한계</small>
+                      습도<small>현재/설정</small>
                     </dt>
                     <dd>{item.humidity}</dd>
                   </dl>
@@ -340,9 +356,7 @@ export default function List({ listData }: ListProps) {
                       <li
                         key={idx}
                         className={idx < item.activeCycles ? 'isActive' : ''}
-                      >
-                        <span>Cycle {idx + 1}</span>
-                      </li>
+                      />
                     ))}
                   </ol>
                   <dl className="time">
@@ -356,7 +370,7 @@ export default function List({ listData }: ListProps) {
         })}
       </ul>
 
-      {/* 클릭 모달 - 항상 편집 가능, 저장/삭제 버튼 사용 */}
+      {/* 클릭 모달 — 퍼블 레이아웃 유지 + 기능 버튼 동작 */}
       <Dialog
         className="dialogCont"
         open={open}
@@ -367,7 +381,11 @@ export default function List({ listData }: ListProps) {
           <DialogTitle className="tit" id="alert-dialog-title">
             {selectedItem ? selectedItem.title : '메모'}
             <span className="right">
-              <IconButton className="btnClose" aria-label="닫기" onClick={handleClose}>
+              <IconButton
+                className="btnClose"
+                aria-label="닫기"
+                onClick={handleClose}
+              >
                 <CloseIcon />
               </IconButton>
             </span>
@@ -381,6 +399,7 @@ export default function List({ listData }: ListProps) {
                 <p>{selectedMemo?.schedule}</p>
               </dd>
             </dl>
+
             <dl className="memoTotal">
               <dt>
                 <h5 className="tit">MEMO</h5>

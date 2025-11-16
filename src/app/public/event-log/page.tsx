@@ -9,15 +9,21 @@ import FormSearch from '@/app/public/components/modules/form/FormSearch';
 import EventLogGrid from '@/app/public/components/modules/grid/EventLogGrid';
 import EventLogDetail from '@/app/public/components/modules/grid/EventLogDetail';
 
+
 export interface LogItem {
   id: number;
   processed: boolean;
   state: string;
+  type: string;
+  code: string;
   message: string;
   action: string;
   time: string;
   solution: string;
   equipment: string;
+  channel: string;
+  phenomenon: string;
+  batteryID: string;
   name: string;
 }
 
@@ -48,132 +54,192 @@ export default function EventLog() {
       id: 1,
       processed: true,
       state: 'Caution',
+      type: '2',
+      code: '26',
       message: `<strong>#장비(EQPID)#</strong>의 <strong>#채널(Channel)#</strong>에 <strong>#현상(Description)#</strong>이 발생하였습니다.`,
       action: '#입력 값 수신#',
       time: '[Occur time]',
       solution: `<strong>#조치(Troubleshooting)#</strong>해주시기 바랍니다.`,
       equipment: '[EQPID]',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '(사용자정의)',
     },
     {
       id: 2,
       processed: false,
-      state: 'Warning',
+      state: 'Critical Alarm',
+      type: '2',
+      code: '26',
       message: '<strong>1F-001</strong> 의 <strong>2</strong> 채널에 <strong>Sampling Cable Disconnection</strong>현상이 발생하였습니다.',
       action: '케이블 재연결',
       time: '2025-08-12 14:15:00',
       solution: `<strong>Please check the cable</strong>해주시기 바랍니다.`,
       equipment: '1F-001',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '김엔지니어 (010-1234-5678)',
     },
     {
       id: 3,
       processed: true,
       state: 'Caution',
+      type: '2',
+      code: '26',
       message: `<strong>#장비(EQPID)#</strong>의 <strong>#채널(Channel)#</strong>에 <strong>#현상(Description)#</strong>이 발생하였습니다.`,
       action: '#입력 값 수신#',
       time: '[Occur time]',
       solution: `<strong>#조치(Troubleshooting)#</strong>해주시기 바랍니다.`,
       equipment: '[EQPID]',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '(사용자정의)',
     },
     {
       id: 4,
       processed: false,
-      state: 'Warning',
+      state: 'Critical Alarm',
+      type: '2',
+      code: '26',
       message: '<strong>1F-001</strong> 의 <strong>2</strong> 채널에 <strong>Sampling Cable Disconnection</strong>현상이 발생하였습니다.',
       action: '케이블 재연결',
       time: '2025-08-12 14:15:00',
       solution: `<strong>Please check the cable</strong>해주시기 바랍니다.`,
       equipment: '1F-001',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '김엔지니어 (010-1234-5678)',
     },
     {
       id: 5,
       processed: true,
       state: 'Caution',
+      type: '2',
+      code: '26',
       message: `<strong>#장비(EQPID)#</strong>의 <strong>#채널(Channel)#</strong>에 <strong>#현상(Description)#</strong>이 발생하였습니다.`,
       action: '#입력 값 수신#',
       time: '[Occur time]',
       solution: `<strong>#조치(Troubleshooting)#</strong>해주시기 바랍니다.`,
       equipment: '[EQPID]',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '(사용자정의)',
     },
     {
       id: 6,
       processed: false,
-      state: 'Warning',
+      state: 'Critical Alarm',
+      type: '2',
+      code: '26',
       message: '<strong>1F-001</strong> 의 <strong>2</strong> 채널에 <strong>Sampling Cable Disconnection</strong>현상이 발생하였습니다.',
       action: '케이블 재연결',
       time: '2025-08-12 14:15:00',
       solution: `<strong>Please check the cable</strong>해주시기 바랍니다.`,
       equipment: '1F-001',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '김엔지니어 (010-1234-5678)',
     },
     {
       id: 7,
       processed: true,
       state: 'Caution',
+      type: '2',
+      code: '26',
       message: `<strong>#장비(EQPID)#</strong>의 <strong>#채널(Channel)#</strong>에 <strong>#현상(Description)#</strong>이 발생하였습니다.`,
       action: '#입력 값 수신#',
       time: '[Occur time]',
       solution: `<strong>#조치(Troubleshooting)#</strong>해주시기 바랍니다.`,
       equipment: '[EQPID]',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '(사용자정의)',
     },
     {
       id: 8,
       processed: false,
-      state: 'Warning',
+      state: 'Critical Alarm',
+      type: '2',
+      code: '26',
       message: '<strong>1F-001</strong> 의 <strong>2</strong> 채널에 <strong>Sampling Cable Disconnection</strong>현상이 발생하였습니다.',
       action: '케이블 재연결',
       time: '2025-08-12 14:15:00',
       solution: `<strong>Please check the cable</strong>해주시기 바랍니다.`,
       equipment: '1F-001',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '김엔지니어 (010-1234-5678)',
     },
     {
       id: 9,
       processed: true,
       state: 'Caution',
+      type: '2',
+      code: '26',
       message: `<strong>#장비(EQPID)#</strong>의 <strong>#채널(Channel)#</strong>에 <strong>#현상(Description)#</strong>이 발생하였습니다.`,
       action: '#입력 값 수신#',
       time: '[Occur time]',
       solution: `<strong>#조치(Troubleshooting)#</strong>해주시기 바랍니다.`,
       equipment: '[EQPID]',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '(사용자정의)',
     },
     {
       id: 10,
       processed: false,
-      state: 'Warning',
+      state: 'Critical Alarm',
+      type: '2',
+      code: '26',
       message: '<strong>1F-001</strong> 의 <strong>2</strong> 채널에 <strong>Sampling Cable Disconnection</strong>현상이 발생하였습니다.',
       action: '케이블 재연결',
       time: '2025-08-12 14:15:00',
       solution: `<strong>Please check the cable</strong>해주시기 바랍니다.`,
       equipment: '1F-001',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '김엔지니어 (010-1234-5678)',
     },
     {
       id: 11,
       processed: true,
       state: 'Caution',
+      type: '2',
+      code: '26',
       message: `<strong>#장비(EQPID)#</strong>의 <strong>#채널(Channel)#</strong>에 <strong>#현상(Description)#</strong>이 발생하였습니다.`,
       action: '#입력 값 수신#',
       time: '[Occur time]',
       solution: `<strong>#조치(Troubleshooting)#</strong>해주시기 바랍니다.`,
       equipment: '[EQPID]',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '(사용자정의)',
     },
     {
       id: 12,
       processed: false,
-      state: 'Warning',
+      state: 'Critical Alarm',
+      type: '2',
+      code: '26',
       message: '<strong>1F-001</strong> 의 <strong>2</strong> 채널에 <strong>Sampling Cable Disconnection</strong>현상이 발생하였습니다.',
       action: '케이블 재연결',
       time: '2025-08-12 14:15:00',
       solution: `<strong>Please check the cable</strong>해주시기 바랍니다.`,
       equipment: '1F-001',
+      channel: '[EQPID]',
+      phenomenon: '[EQPID]',
+      batteryID: '[EQPID]',
       name: '김엔지니어 (010-1234-5678)',
     },
   ]);
@@ -241,6 +307,17 @@ export default function EventLog() {
                     <FormSelect value={select.state} options={[{ value: 'all', label: '전체' }]} onChange={(v) => handleChange('state', v)} />
                   </div>
 
+                  <div className="formCont">
+                    <h4 className="tit">타입</h4>
+                    <FormSelect value={select.state} options={[{ value: 'all', label: '전체' }]} onChange={(v) => handleChange('state', v)} />
+                  </div>
+
+                  <div className="formCont">
+                    <h4 className="tit">코드</h4>
+                    <FormSelect value={select.state} options={[{ value: 'all', label: '전체' }]} onChange={(v) => handleChange('state', v)} />
+                  </div>
+                </div>
+                <div className="innerWrap">
                   <div className="formCont">
                     <h4 className="tit">발생시간</h4>
                     <FormDateRange startDate={select.startDate} endDate={select.endDate} onChangeStart={(date) => handleChange('startDate', date)} onChangeEnd={(date) => handleChange('endDate', date)} />

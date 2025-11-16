@@ -7,17 +7,17 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
 import Image from 'next/image';
-import SearchIcon from '@/assets/images/icon/search.png';
+import SearchIcon from '@/assets/images/icon/search_b.png'; // ✅ 디자인 퍼블 아이콘 적용
 import CloseIcon from '@mui/icons-material/Close';
 
 interface ChipData {
   key: number;
-  label: string;   // 실제 검색어
+  label: string; // 실제 검색어
   delete: boolean;
 }
 
 interface SearchAreaProps {
-  // ✅ 검색어 배열 전달
+  // ✅ 검색어 배열 전달 (기능 유지)
   onSearchChange?: (keywords: string[]) => void;
 }
 
@@ -56,7 +56,7 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
     });
   };
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = e => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSearch();
@@ -68,13 +68,13 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
       <Paper
         className="schInput"
         component="form"
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={e => e.preventDefault()}
       >
         <InputBase
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={e => setSearchText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="검색어입력"
+          placeholder="검색어를 입력해 주세요." // ✅ 디자인 퍼블 문구
           inputProps={{ 'aria-label': '검색어 입력' }}
         />
 
@@ -102,11 +102,11 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
       <dl className="schResult">
         <dt>검색결과</dt>
         <dd>
-          {chipData.map((data) => (
+          {chipData.map(data => (
             <Chip
               key={data.key}
               className="chip"
-              label={`#${data.label}`}
+              label={`#${data.label}`} // ✅ UI는 #표시, 실제 값은 label 그대로
               onDelete={!data.delete ? undefined : handleDelete(data)}
             />
           ))}

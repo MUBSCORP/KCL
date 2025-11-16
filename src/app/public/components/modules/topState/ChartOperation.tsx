@@ -8,33 +8,43 @@ interface ChartProps {
   data: { name: string; value: number }[]; // name: 대기/진행중/일시정지/알람
 }
 
-// 도넛 색상: 카드/뱃지와 동일하게 고정
+// ✅ 상태별 고정 색상 (카드/뱃지와 동일하게)
 const STATUS_COLORS: Record<string, string> = {
-  대기: '#22B1F5',      // blue  : var(--state-rest)
-  진행중: '#45D141',    // green : var(--state-ongoing)
-  일시정지: '#FFEE00',  // yellow: var(--state-stop)
-  알람: '#FF2626',      // red   : var(--state-alarm)
+  대기: '#008CFF',      // rest
+  진행중: '#45D141',    // ongoing
+  일시정지: '#FFEE00',  // stop
+  알람: '#FF2626',      // alarm
 };
 
 export default function ChartOperation({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // 데이터 순서에 맞는 색 배열 생성 (fallback은 회색)
+  const colors = data.map(d => STATUS_COLORS[d.name] ?? '#AAAAAA');
 
   useEffect(() => {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
 
-    // name(대기/진행중/일시정지/알람)에 따라 색상 지정
-    const seriesData = data.map((item) => ({
-      ...item,
-      itemStyle: {
-        color: STATUS_COLORS[item.name] ?? '#AAAAAA',
-      },
-    }));
+    // legend rich text용 스타일 (퍼블 방식)
+    const rich: Record<string, any> = {
+      a: { width: 50 }, // 상태 텍스트 칼럼
+    };
+    data.forEach((d, i) => {
+      rich[`b${i}`] = {
+        color: '#000',
+        backgroundColor: colors[i],
+        borderRadius: 3,
+        padding: [3, 4, 1],
+        width: 30,
+        align: 'right',
+      };
+    });
 
     const option: echarts.EChartsOption = {
       tooltip: {
-        show: false, // 퍼블처럼 툴팁 숨김
+        show: false, // 기능 버전/퍼블 둘 다 툴팁 숨김
         trigger: 'item',
         formatter: '{b}: {c}대 ({d}%)',
         confine: true,
@@ -48,15 +58,18 @@ export default function ChartOperation({ title, data }: ChartProps) {
         itemWidth: 6,
         itemHeight: 6,
         formatter: (name: string) => {
-          const item = data.find((d) => d.name === name);
-          const value = item?.value ?? 0;
-          return `${name} ${value}대`;
+          const idx = data.findIndex(d => d.name === name);
+          if (idx < 0) return name;
+          const value = data[idx].value ?? 0;
+          // 예: "진행중 3대" → [{a|진행중} {b0|3대}] 형태로 칼라 박스 표시
+          return `{a|${name}} {b${idx}|${value}대}`;
         },
         textStyle: {
           fontSize: 10,
-        },
-        data: data.map((d) => d.name),
-      },
+          rich,
+        } as any,
+        data: data.map(d => d.name),
+      } as echarts.LegendComponentOption,
       series: [
         {
           name: title,
@@ -73,26 +86,27 @@ export default function ChartOperation({ title, data }: ChartProps) {
           },
           emphasis: {
             label: {
-              show: true,
+              show: true, // hover 시만 값 표시
               fontSize: 12,
               fontWeight: 'bold',
             },
           },
           labelLine: { show: false },
-          data: seriesData,
+          data,
+          color: colors, // ✅ 상태별 고정 색상 적용
         },
       ],
     };
 
     chart.setOption(option);
 
-    const resize = () => chart.resize();
-    window.addEventListener('resize', resize);
+    const handleResize = () => chart.resize();
+    window.addEventListener('resize', handleResize);
     return () => {
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [data, title]);
+  }, [data, title, colors]);
 
   return (
     <div className="chartCont">

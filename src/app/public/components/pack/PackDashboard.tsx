@@ -156,7 +156,7 @@ export default function DashboardPack() {
       Rest: 0,
       'Rest(ISO)': 0,
       Pattern: 0,
-      Balance: 0,
+      /*Balance: 0,*/
       Chargemap: 0,
     };
 
@@ -166,7 +166,7 @@ export default function DashboardPack() {
       else if (op === 'discharge') opBuckets.Discharge++;
       else if (op === 'rest-iso') opBuckets['Rest(ISO)']++;
       else if (op === 'pattern') opBuckets.Pattern++;
-      else if (op === 'balance') opBuckets.Balance++;
+      /*else if (op === 'balance') opBuckets.Balance++;*/
       else if (op === 'chargemap') opBuckets.Chargemap++;
       else opBuckets.Rest++;
     });

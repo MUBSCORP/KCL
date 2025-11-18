@@ -72,7 +72,7 @@ export default function List({ listData }: ListProps) {
   };
 
   // liWidth 계산
-  const liWidth = ulSize.width * 0.06667;
+  const liWidth = ulSize.width * 0.0714285;
 
   return (
     <>

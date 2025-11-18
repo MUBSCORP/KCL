@@ -386,12 +386,15 @@
             ul {
               @include flexArea($gap: 1rem);
               position: relative;
+              padding-left: 3rem;
               &:before {
                 content: 'CH';
                 position: absolute;
                 top: 0.3rem;
-                left: -1.4rem;
-                font-size: 0.8rem;
+                left: -0rem;
+                font-size: 2rem;
+                font-weight: 400;
+                color: #666;
               }
               li {
                 position: relative;

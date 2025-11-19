@@ -9,7 +9,6 @@ import FormSearch from '@/app/public/components/modules/form/FormSearch';
 import EventLogGrid from '@/app/public/components/modules/grid/EventLogGrid';
 import EventLogDetail from '@/app/public/components/modules/grid/EventLogDetail';
 
-
 export interface LogItem {
   id: number;
   processed: boolean;

@@ -12,7 +12,7 @@ interface EventLogGridProps {
   rowsPerPage?: number;
 }
 
-export default function EventLogGrid({ rows, onSelectRow, rowsPerPage = 8 }: EventLogGridProps) {
+export default function EventLogGrid({ rows, onSelectRow, rowsPerPage = 10 }: EventLogGridProps) {
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(rows.length / rowsPerPage);
 
@@ -24,15 +24,19 @@ export default function EventLogGrid({ rows, onSelectRow, rowsPerPage = 8 }: Eve
         <Table>
           <colgroup>
             <col style={{ width: '10%' }} />
-            <col style={{ width: '10%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '5%' }} />
+            <col style={{ width: '5%' }} />
             <col />
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '20%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '15%' }} />
           </colgroup>
           <TableHead>
             <TableRow>
               <TableCell align="center">처리여부</TableCell>
               <TableCell align="center">상태</TableCell>
+              <TableCell align="center">Type</TableCell>
+              <TableCell align="center">Code</TableCell>
               <TableCell align="center">알림내용</TableCell>
               <TableCell align="center">조치내용</TableCell>
               <TableCell align="center">발생시간</TableCell>
@@ -46,6 +50,12 @@ export default function EventLogGrid({ rows, onSelectRow, rowsPerPage = 8 }: Eve
                 </TableCell>
                 <TableCell align="center" className="state" data-state={row.state.toLocaleLowerCase()}>
                   {row.state}
+                </TableCell>
+                <TableCell align="center" className="type">
+                  {row.type}
+                </TableCell>
+                <TableCell align="center" className="code">
+                  {row.code}
                 </TableCell>
                 <TableCell className="notice">
                   <Link

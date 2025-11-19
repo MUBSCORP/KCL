@@ -28,26 +28,27 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
   // ✅ chipData 가 바뀔 때마다 부모에게 검색어 배열 전달
   React.useEffect(() => {
     if (!onSearchChange) return;
-    const keywords = chipData.map(c => c.label);
+    const keywords = chipData.map((c) => c.label);
     onSearchChange(keywords);
   }, [chipData, onSearchChange]);
 
   const handleDelete = (chipToDelete: ChipData) => () => {
-    setChipData(prev => prev.filter(chip => chip.key !== chipToDelete.key));
+    setChipData((prev) => prev.filter((chip) => chip.key !== chipToDelete.key));
   };
 
+  // ✅ X 버튼: 인풋 + 검색 조건(칩) 모두 초기화 → 검색 해제
   const handleClearInput = () => {
     setSearchText('');
-    // 인풋만 지우고, 기존 chip 검색 조건은 유지
+    setChipData([]); // useEffect 통해 onSearchChange([]) 전달
   };
 
   const handleSearch = () => {
     const keyword = searchText.trim();
     if (!keyword) return;
 
-    setChipData(prev => {
+    setChipData((prev) => {
       // 같은 검색어 있으면 제거하고 맨 앞으로
-      const filtered = prev.filter(c => c.label !== keyword);
+      const filtered = prev.filter((c) => c.label !== keyword);
       const next: ChipData[] = [
         { key: Date.now(), label: keyword, delete: true },
         ...filtered,
@@ -56,7 +57,7 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
     });
   };
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = e => {
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSearch();
@@ -68,11 +69,11 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
       <Paper
         className="schInput"
         component="form"
-        onSubmit={e => e.preventDefault()}
+        onSubmit={(e) => e.preventDefault()}
       >
         <InputBase
           value={searchText}
-          onChange={e => setSearchText(e.target.value)}
+          onChange={(e) => setSearchText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="검색어를 입력해 주세요." // ✅ 디자인 퍼블 문구
           inputProps={{ 'aria-label': '검색어 입력' }}
@@ -102,7 +103,7 @@ export default function SearchArea({ onSearchChange }: SearchAreaProps) {
       <dl className="schResult">
         <dt>검색결과</dt>
         <dd>
-          {chipData.map(data => (
+          {chipData.map((data) => (
             <Chip
               key={data.key}
               className="chip"

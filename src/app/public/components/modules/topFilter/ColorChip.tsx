@@ -17,7 +17,7 @@ export default function ColorChip() {
   return (
     <>
       {/* 점등/점멸 상태 */}
-      <ul className="colorChip">
+     {/* <ul className="colorChip">
         <li>
           <Image src={chip_01} alt="" />
           점등
@@ -27,7 +27,7 @@ export default function ColorChip() {
           점멸
         </li>
       </ul>
-
+*/}
       {/* 장비 상태 레전드 */}
       <ul className="colorChip">
         <li>

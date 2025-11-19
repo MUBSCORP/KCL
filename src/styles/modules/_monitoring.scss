@@ -522,17 +522,40 @@
             }
           }
 
+
           &[data-shutdown='shutdown'] {
             .inner {
               &::after {
-                width: calc(100% + 0.4rem);
-                height: calc(100% + 0.4rem);
+                content: '';
+                position: absolute;
+                width: calc(100% + 0.7rem);
+                height: calc(100% + 0.7rem);
                 border-width: 0.3rem;
                 border-radius: 0.6rem;
-                border-color: var(--state-ongoing);
                 left: -0.2rem;
                 top: -0.2rem;
+                animation: blinkShutdown 0.5s infinite alternate; // 🔸 깜빡임 추가
               }
+            }
+
+            // 진행
+            &[data-operation='ongoing'] .inner::after {
+              border-color: var(--state-ongoing);
+            }
+
+            // 정지(알람 계열)
+            &[data-operation='stop'] .inner::after {
+              border-color: var(--state-alarm);
+            }
+
+            // 완료
+            &[data-operation='completion'] .inner::after {
+              border-color: var(--state-completion);
+            }
+
+            // 사용가능/대기
+            &[data-operation='available'] .inner::after {
+              border-color: var(--co-gray);
             }
           }
         }

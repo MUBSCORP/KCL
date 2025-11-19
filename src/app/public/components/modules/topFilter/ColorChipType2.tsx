@@ -1,11 +1,10 @@
+// ColorChipType2.tsx
 'use client';
 
 import { Button } from '@mui/material';
 import Image from 'next/image';
 
 import BtnReset from '@/assets/images/icon/reset.png';
-import chip_01 from '@/assets/images/icon/chip_01.png';
-import chip_02 from '@/assets/images/icon/chip_02.png';
 import chip_03 from '@/assets/images/icon/chip_03.png';
 import chip_04 from '@/assets/images/icon/chip_04.png';
 import chip_05 from '@/assets/images/icon/chip_05.png';
@@ -13,19 +12,13 @@ import chip_06 from '@/assets/images/icon/chip_06.png';
 import chip_07 from '@/assets/images/icon/chip_07.png';
 import chip_08 from '@/assets/images/icon/chip_08.png';
 
-export default function ColorChip() {
+type ColorChipType2Props = {
+  onReset?: () => void;
+};
+
+export default function ColorChipType2({ onReset }: ColorChipType2Props) {
   return (
     <>
-      <ul className="colorChip">
-        <li>
-          <Image src={chip_01} alt="" />
-          점등
-        </li>
-        <li>
-          <Image src={chip_02} alt="" />
-          점멸
-        </li>
-      </ul>
       <ul className="colorChip">
         <li>
           <Image src={chip_03} alt="" />
@@ -52,7 +45,7 @@ export default function ColorChip() {
           대기
         </li>
       </ul>
-      <Button className="btnReset">
+      <Button className="btnReset" onClick={onReset}>
         <span>RESET</span>
         <Image src={BtnReset} alt="초기화" width={16} height={16} />
       </Button>

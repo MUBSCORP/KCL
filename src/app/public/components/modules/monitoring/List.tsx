@@ -317,7 +317,7 @@ export default function List({ listData }: ListProps) {
                     <dt>
                       {item.operation === 'charge' ||
                       item.operation === 'discharge'
-                        ? 'S'
+                        ? '스텝'
                         : '스텝'}
                     </dt>
                     <dd>{item.step}</dd>

@@ -187,7 +187,7 @@ export default function DashboardPack() {
       title: '신규장비 업데이트 예정',
       check: false,
       ready: true,
-      shutdown: false,
+      shutdown: true,
       operation: 'stop',
       icon: 'error',
       temp1: '17℃',

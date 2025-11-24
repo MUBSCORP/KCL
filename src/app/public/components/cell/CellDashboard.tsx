@@ -101,6 +101,34 @@ function splitTemp(src?: string | null): [string, string] {
   return [left, right];
 }
 
+// 🔹 온도 표시를 소수점 1자리로 포맷
+function formatTemp(val?: string | null): string {
+  if (!val) return '';
+  const s = val.trim();
+  if (!s || s === '-') return s;
+
+  // "25.123456°C", "25.123456 ℃", "25.123456" 등 처리
+  const m = s.match(/^([-+]?\d+(?:\.\d+)?)(.*)$/);
+  if (!m) return s;
+
+  const num = parseFloat(m[1]);
+  if (Number.isNaN(num)) return s;
+
+  const unit = (m[2] ?? '').trim(); // "°C", "℃" 등
+
+  // 🔸 1) 소수점 첫째 자리까지 **버림** (반올림 X)
+  //     예) 23.19 -> 231.9 -> 231 -> 23.1
+  const truncated1 = Math.trunc(num * 10) / 10;
+
+  // 🔸 2) 소수 첫째 자리가 0이면 정수만 표시
+  const valueStr = Number.isInteger(truncated1)
+    ? String(truncated1)          // 23.0 -> "23"
+    : truncated1.toFixed(1);      // 23.1 -> "23.1"
+
+  return `${valueStr}${unit ? '' + unit : ''}`;
+}
+
+
 function extractRawStatusFromStep(step?: string | null): string {
   if (!step) return '';
   const open = step.indexOf('(');
@@ -129,7 +157,7 @@ const STOP_STATUS_LIST = [
   'pause',
   'appoint time pause',
   'appoint step pause',
-  'appoint loop pasue',
+  'appoint loop pause',
   'appoint step loop pause',
   'special pause',
 ];
@@ -146,7 +174,10 @@ const COMPLETE_STEP_LIST = ['end ok', 'end ng', 'user termination'];
 
 function normalizeStatusName(s?: string | null): string {
   if (!s) return '';
-  return s.trim().toLowerCase();
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');  // ✅ 탭/개행/중복 스페이스 → 한 칸
 }
 
 // 🔹 채널 단위 상태 판별
@@ -386,6 +417,7 @@ export default function DashboardCell() {
       });
 
       const anyAlarm = alarmCnt > 0;
+      const anyStop  = stopCnt > 0;          // ✅ STOP 여부 추가
       const anyRun = runCnt > 0;
       const anyComplete = completeCnt > 0;
       const anyReady = readyCnt > 0;
@@ -398,11 +430,14 @@ export default function DashboardCell() {
       let icon: ListItem['icon'] = 'stay';
       let operation: ListItem['operation'] = 'available';
 
-      if (anyAlarm) {
-        // 알람 → 빨간 깜빡임
+      // 🔴 알람 또는 정지 채널이 하나라도 있으면 정지(빨간 테두리)
+      if (anyAlarm || anyStop) {
         operation = 'stop';
         icon = 'error';
-        shutdown = true;
+        shutdown = false;
+        if(anyAlarm){
+          shutdown = true;
+        }
       } else if (anyRun) {
         // 진행 중
         operation = 'ongoing';
@@ -419,7 +454,7 @@ export default function DashboardCell() {
         operation = 'completion';
         icon = 'stay';
         shutdown = false;
-      } else if (anyReady && !anyRun && !anyAlarm && !anyComplete) {
+      } else if (anyReady && !anyRun && !anyAlarm && !anyComplete && !anyStop) {
         // Ready만 → 대기(회색)
         operation = 'available';
         ready = true;
@@ -431,7 +466,6 @@ export default function DashboardCell() {
         icon = 'success';
         shutdown = false;
       }
-
       // ✅ 장비별 RESET 상태 적용
       const gKey = groupKeyOf(group.eqpid, group.chamberIndex);
       const resetMode = resetTargets[gKey];
@@ -452,8 +486,9 @@ export default function DashboardCell() {
 
       // 온도
       const [curTempRaw, setTempRaw] = splitTemp(rep.temp);
-      const temp1 = curTempRaw;
-      const temp2 = setTempRaw;
+      // 🔸 여기서 포맷 적용
+      const temp1 = formatTemp(curTempRaw);
+      const temp2 = formatTemp(setTempRaw);
 
       // 메모 리스트
       const memoText = channelModes.map(({ ch }) => {
@@ -465,7 +500,7 @@ export default function DashboardCell() {
           available: '사용가능',
         };
 
-        const cellTempSuffix = ch.cellTemp ? ` (${ch.cellTemp}℃)` : '';
+        const cellTempSuffix = ch.cellTemp ? ` (${ch.cellTemp}` : '';
 
         return {
           ch: `CH${ch.channelIndex ?? ''}`,
@@ -500,7 +535,7 @@ export default function DashboardCell() {
         temp1,
         temp2,
         ch1: runCnt,
-        ch2: alarmCnt,
+        ch2: alarmCnt + stopCnt,
         ch3: completeCnt,
         memo: !!memoText.length,
         memoText,
@@ -694,24 +729,27 @@ export default function DashboardCell() {
                 const modes = g.channels.map(getChannelMode);
                 let runCnt = 0;
                 let alarmCnt = 0;
+                let stopCnt = 0;
                 let completeCnt = 0;
 
                 for (const m of modes) {
                   if (m === 'run') runCnt++;
                   else if (m === 'alarm') alarmCnt++;
+                  else if (m === 'stop') stopCnt++;
                   else if (m === 'complete') completeCnt++;
                 }
 
                 const anyAlarm = alarmCnt > 0;
+                const anyStop  = stopCnt > 0;
                 const anyRun = runCnt > 0;
                 const totalChannels = g.channels.length || 1;
                 const allComplete = completeCnt === totalChannels;
 
                 let shutdown = false;
-                if (anyAlarm) {
+                if (anyAlarm || anyStop) {
+                  // 알람 또는 정지 → 깜빡임 대상
                   shutdown = true;
                 } else if (anyRun && completeCnt > 0 && !allComplete) {
-                  // 진행 + 완료 섞임 → 초록 깜빡임
                   shutdown = true;
                 }
 
@@ -723,7 +761,6 @@ export default function DashboardCell() {
                   next[k] = 'clear-blink';
                 }
               }
-
               setResetTargets(next);
             }}
           />

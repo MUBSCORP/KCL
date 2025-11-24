@@ -472,6 +472,8 @@
 
           &[data-operation='ongoing'] {
             .inner {
+              border-width: 0.3rem;
+              background-color: #e9f6e9;
               border-color: var(--state-ongoing);
               box-shadow: 0 0.4rem 0.8rem rgba(69, 209, 65, 0.2);
             }

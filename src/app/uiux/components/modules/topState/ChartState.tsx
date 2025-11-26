@@ -67,7 +67,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
           name: '장비현황',
           type: 'pie',
           radius: ['50%', '90%'],
-          center: ['24%', '50%'],
+          center: ['20%', '50%'],
           avoidLabelOverlap: false,
           label: {
             show: false,
@@ -104,7 +104,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '26rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '28rem', height: '10.4rem' }} />
     </div>
   );
 }

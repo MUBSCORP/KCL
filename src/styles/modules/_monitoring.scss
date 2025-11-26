@@ -425,7 +425,7 @@
             }
           }
           .bottomArea {
-            @include flexArea($gap: 0.3rem);
+            @include flexArea($gap: 0.2rem);
             font-size: 1.1rem;
             margin-top: 0.4rem;
             > span {
@@ -440,6 +440,7 @@
             left: 0;
             bottom: 0;
             width: 2rem;
+            min-width: 2rem;
             height: 2rem;
             border-radius: 50%;
             background: var(--co-grayLight);

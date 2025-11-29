@@ -3,6 +3,7 @@
 // topState
 import ChartRunning from '@/app/uiux/components/modules/topState/ChartRunning';
 import ChartState from '@/app/uiux/components/modules/topState/ChartState';
+import ChartState2 from '@/app/uiux/components/modules/topState/ChartState2';
 import ChartOperation from '@/app/uiux/components/modules/topState/ChartOperation';
 import ChartToday from '@/app/uiux/components/modules/topState/ChartToday';
 import ChartMonth from '@/app/uiux/components/modules/topState/ChartMonth';
@@ -16,6 +17,11 @@ import titleIcon from '@/assets/images/icon/detail3.png';
 
 // monitoring
 import List2 from '@/app/uiux/components/modules/monitoring/ListType2';
+
+// zoom
+import { useState } from 'react';
+import { Dialog, DialogTitle, DialogContent, IconButton, Button } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 export default function DashboardPack() {
   // --- Chart Data ---
@@ -1492,6 +1498,12 @@ export default function DashboardPack() {
     },
   ];
 
+  // chart zoom
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+
+  // card zoom
+  const [isZoomOpen2, setIsZoomOpen2] = useState(false);
+
   return (
     <>
       {/* --- topState Section --- */}
@@ -1501,6 +1513,9 @@ export default function DashboardPack() {
           <ChartRunning title="장비가동률" total={chartData.total} running={chartData.running} />
           <ChartState title="장비현황" data={chartData2} />
           <ChartOperation title="장비가동현황" data={chartData3} />
+          <Button className="btnZoom" onClick={() => setIsZoomOpen(true)}>
+            확대보기
+          </Button>
         </div>
         <div className="center">
           <TopStateCenter />
@@ -1519,6 +1534,10 @@ export default function DashboardPack() {
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세" icon={titleIcon} />
+
+          <Button className="btnZoom" onClick={() => setIsZoomOpen2(true)}>
+            확대보기
+          </Button>
           <SearchArea />
         </div>
         <div className="right">
@@ -1533,6 +1552,61 @@ export default function DashboardPack() {
           <List2 listData={listData} />
         </div>
       </section>
+
+      {/* chart zoom dialog */}
+      <Dialog className="dialogCont wide" open={isZoomOpen} onClose={() => setIsZoomOpen(false)}>
+        <div className="modalWrapper chartZoom">
+          {/* 제목 + 닫기버튼 */}
+          <DialogTitle className="tit">
+            <span></span>
+            <IconButton className="btnClose" onClick={() => setIsZoomOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="contents">
+            <div className="topState">
+              <div className="left">
+                <ChartRunning title="장비가동률" total={chartData.total} running={chartData.running} />
+                <ChartState2 title="장비현황" data={chartData2} />
+                <ChartOperation title="장비가동현황" data={chartData3} />
+              </div>
+            </div>
+          </DialogContent>
+        </div>
+      </Dialog>
+
+      {/* card zoom dialog */}
+      <Dialog className="dialogCont full" open={isZoomOpen2} onClose={() => setIsZoomOpen2(false)}>
+        <div className="modalWrapper chartZoom">
+          {/* 제목 + 닫기버튼 */}
+          <DialogTitle className="tit">
+            <span></span>
+            <IconButton className="btnClose" onClick={() => setIsZoomOpen2(false)}>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="contents">
+            <section className="topFilter">
+              <div className="left">
+                <PageTitle title="장비상세" icon={titleIcon} />
+              </div>
+              <div className="right">
+                <ColorChipType2 />
+              </div>
+            </section>
+
+            {/* monitoring */}
+            <section className="monitoring type2">
+              <h2 className="ir">모니터링 화면</h2>
+              <div className="innerWrapper">
+                <List2 listData={listData} />
+              </div>
+            </section>
+          </DialogContent>
+        </div>
+      </Dialog>
     </>
   );
 }

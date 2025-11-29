@@ -2,6 +2,22 @@
 @use 'common/mixins' as *;
 
 .dialogCont {
+  &.wide {
+    .MuiPaper-elevation {
+      width: 111rem;
+      max-width: 111rem;
+    }
+  }
+  &.full {
+    .MuiPaper-elevation {
+      width: calc(100% - 6rem);
+      max-width: calc(100% - 6rem);
+      height: 84rem;
+    }
+    .monitoring {
+      height: 64rem;
+    }
+  }
   .MuiPaper-elevation {
     width: 65rem;
     padding: 2rem 3rem 3rem;
@@ -190,6 +206,30 @@
                     }
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+      &.chartZoom {
+        .topState {
+          border: none;
+          padding: 0;
+          margin: 0;
+          box-shadow: none;
+          min-width: auto;
+          .left {
+            min-width: auto;
+            .chartWrap {
+              width: 18.8rem !important;
+              height: 20.8rem !important;
+              &:nth-child(2) {
+                width: 35rem !important;
+                height: 20.8rem !important;
+              }
+              &:nth-child(3) {
+                width: 35rem !important;
+                height: 20.8rem !important;
               }
             }
           }

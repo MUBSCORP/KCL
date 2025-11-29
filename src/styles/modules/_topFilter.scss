@@ -92,6 +92,14 @@
         }
       }
     }
+    .btnZoom {
+      background-color: #777;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.4rem;
+      color: #fff;
+      font-size: 1.2rem;
+      margin-left: -2rem;
+    }
   }
   > .right {
     @include flexArea($gap: 2rem);

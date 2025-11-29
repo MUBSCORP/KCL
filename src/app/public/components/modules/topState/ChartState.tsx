@@ -68,6 +68,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
     });
 
     const option: echarts.EChartsOption = {
+      animation: false,
       tooltip: {
         show: false, // 퍼블/기능 둘 다 툴팁 숨김
         trigger: 'item',
@@ -99,7 +100,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
           name: '장비현황',
           type: 'pie',
           radius: ['50%', '90%'], // 퍼블 값
-          center: ['24%', '50%'], // 퍼블 위치
+          center: ['20%', '50%'], // 퍼블 위치
           avoidLabelOverlap: false,
           label: {
             show: false,
@@ -140,7 +141,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
       <div
         className="chartWrap"
         ref={chartRef}
-        style={{ width: '26rem', height: '10.4rem' }} // 퍼블 사이즈
+        style={{ width: '28rem', height: '10.4rem' }} // 퍼블 사이즈
       />
     </div>
   );

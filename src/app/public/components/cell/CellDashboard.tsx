@@ -54,6 +54,12 @@ export type MonitoringItem = {
 
   // 백엔드에서 내려주고 있으면 활용
   timestamp?: string;
+
+  ip?: string;           // ✅ 선택: 백엔드 ip 내려받기
+  // 🔹 알람 존재 여부(백엔드에서 내려줌)
+  alarmCount?: number;    // Alarms 배열 길이
+  hasAlarms?: boolean;    // alarmCount > 0 이면 true
+
 };
 
 // ===============================
@@ -62,6 +68,13 @@ export type MonitoringItem = {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? '';
 const LIST_API = `${API_BASE_URL}/api/monitoring/CELL/list`;
 const SSE_URL = `${API_BASE_URL}/api/monitoring/sse/telemetry`;
+
+
+const POWER_TODAY_API = `${API_BASE_URL}/api/power/today?type=CELL`;
+const POWER_MONTH_API = `${API_BASE_URL}/api/power/month?type=CELL`;
+
+type TodayPower = { charge: number; discharge: number };
+type MonthPower = { name: string; charge: number; discharge: number };
 
 const fetcher = async (path: string) => {
   const res = await fetch(path, { cache: 'no-store' });
@@ -117,7 +130,6 @@ function formatTemp(val?: string | null): string {
   const unit = (m[2] ?? '').trim(); // "°C", "℃" 등
 
   // 🔸 1) 소수점 첫째 자리까지 **버림** (반올림 X)
-  //     예) 23.19 -> 231.9 -> 231 -> 23.1
   const truncated1 = Math.trunc(num * 10) / 10;
 
   // 🔸 2) 소수 첫째 자리가 0이면 정수만 표시
@@ -127,7 +139,6 @@ function formatTemp(val?: string | null): string {
 
   return `${valueStr}${unit ? '' + unit : ''}`;
 }
-
 
 function extractRawStatusFromStep(step?: string | null): string {
   if (!step) return '';
@@ -222,7 +233,6 @@ function toMemoStatus(ch: MonitoringItem): MemoStatus {
 const groupKeyOf = (eqpid: string, chamberIndex: number) =>
   `${eqpid}__${chamberIndex || 1}`;
 
-// 장비(그룹) 시그니처: 값이 실제로 바뀌었는지 비교용
 type EquipGroup = {
   key: string;
   title: string;
@@ -231,8 +241,8 @@ type EquipGroup = {
   channels: MonitoringItem[];
 };
 
+// 장비(그룹) 시그니처: 값이 실제로 바뀌었는지 비교용
 function buildGroupSignature(group: EquipGroup): string {
-  // 상태/온도/전압/타임스탬프 정도만 묶어서 비교
   return group.channels
     .map((ch) => {
       return [
@@ -250,16 +260,74 @@ function buildGroupSignature(group: EquipGroup): string {
     .join('||');
 }
 
+// 🔹 CELL MonitoringItem 키 (백엔드 keyIndex 와 동일 컨셉: chamber*100 + channel)
+function cellItemKey(ch: MonitoringItem): string {
+  const eqpid = (ch.eqpid || ch.title || '').trim();
+  const chamber =
+    typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0
+      ? ch.chamberIndex
+      : 1;
+  const chIdx =
+    typeof ch.channelIndex === 'number' && ch.channelIndex > 0
+      ? ch.channelIndex
+      : 1;
+  const keyIndex = chamber * 100 + chIdx;
+  return `${eqpid}#${keyIndex}`;
+}
+// 🔥 JSON 유효성 검사 함수 추가
+function isJsonString(str: string): boolean {
+  try {
+    const obj = JSON.parse(str);
+    return typeof obj === 'object' || Array.isArray(obj);
+  } catch {
+    return false;
+  }
+}
+
 // ✅ RESET 모드
 type ResetMode = 'clear-blink' | 'complete-to-available';
 
 export default function DashboardCell() {
-  // 1) CELL 목록 로딩 (항상 전체 리스트)
+  // 1) CELL 목록 로딩 (초기 전체 리스트)
   const { data, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
     refreshInterval: 0,
     revalidateOnFocus: false,
   });
-  const loading = !data && !error;
+
+
+  const { data: todayPower } = useSWR<TodayPower>(
+    POWER_TODAY_API,
+    async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("today power fetch failed");
+      return res.json();
+    },
+    { refreshInterval: 5000 }
+  );
+
+  const { data: monthPower } = useSWR<MonthPower[]>(
+    POWER_MONTH_API,
+    async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("month power fetch failed");
+      return res.json();
+    },
+    { refreshInterval: 60000 }
+  );
+
+
+  // 🔹 실제 화면에 사용할 아이템 목록 (SSE delta 반영용)
+  const [items, setItems] = useState<MonitoringItem[] | null>(null);
+
+  // SWR data 변경 시 한 번 동기화
+  useEffect(() => {
+    if (data) {
+      setItems(data);
+    }
+  }, [data]);
+
+  const effectiveData = items ?? data ?? [];
+  const loading = !effectiveData.length && !error;
 
   // ✅ 장비별 RESET 상태 (eqpid__chamberIndex → ResetMode)
   const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>(
@@ -269,15 +337,105 @@ export default function DashboardCell() {
   // ✅ 이전 장비 스냅샷 시그니처 (값이 실제 바뀌었는지 판단용)
   const lastGroupSignRef = useRef<Record<string, string>>({});
 
-  // 2) SSE – 내용은 신경 안 쓰고, 뭔가 오면 전체 리스트 다시 로딩
+  // 2) SSE – DELTA 를 받아서 items 에 merge
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const es = new EventSource(SSE_URL);
     es.onopen = () => console.info('[CELL SSE] connected:', SSE_URL);
 
-    es.onmessage = () => {
-      mutate();
+    es.onmessage = (e) => {
+      const dataText = e.data;
+      if (!dataText) return;
+
+      const trimmed = dataText.trim();
+
+      // ✅ JSON 이 아닌 단순 문자열 이벤트(alarm-updated:CELL 등)
+      //    → 여기서는 타입보고 mutate() 여부 결정
+      if (!isJsonString(trimmed)) {
+        console.debug('[CELL SSE] non-JSON message:', trimmed);
+
+        // 알람 이벤트 형식만 처리
+        if (trimmed.endsWith(':CELL')) {
+          mutate();  // 리스트만 재조회
+        }
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(trimmed);
+        console.debug('[CELL SSE] payload:', payload);
+
+        // 1) 🔹 전체 리스트 형태: [ { ...MonitoringItem }, ... ]
+        //    (혹시 나중에 CELL 전용 리스트를 쏠 때를 대비해서 타입 체크 추가)
+        if (Array.isArray(payload)) {
+          // 배열만 온 경우엔 타입 정보가 없으니 그냥 CELL 용이라고 가정
+          setItems(payload as MonitoringItem[]);
+          return;
+        }
+
+        // 2) 🔹 DELTA 래퍼 형태: { kind, type, eqpid, items: [ ... ] }
+        if (payload && Array.isArray(payload.items)) {
+
+          // ⭐ 여기 추가: type 필터링
+          const msgType =
+            typeof payload.type === 'string'
+              ? payload.type.toUpperCase()
+              : null;
+
+          // PACK 델타는 CELL 대시보드에서 무시
+          if (msgType && msgType !== 'CELL') {
+            console.debug('[CELL SSE] ignore delta for type:', msgType);
+            return;
+          }
+
+          const deltaItems = payload.items as MonitoringItem[];
+
+          setItems((prev) => {
+            if (!prev || !prev.length) {
+              // 아직 초기 목록이 없으면 델타만으로 채움
+              return deltaItems;
+            }
+
+            const map = new Map<string, MonitoringItem>();
+            // 기존 아이템 유지
+            for (const ch of prev) {
+              map.set(cellItemKey(ch), ch);
+            }
+            // 델타로 덮어쓰기
+            for (const ch of deltaItems) {
+              map.set(cellItemKey(ch), ch);
+            }
+            return Array.from(map.values());
+          });
+          return;
+        }
+
+        // 3) 그 외 JSON 구조는 안전하게 전체 재조회
+        //    (여기서도 type 이 CELL 인 것만 재조회)
+        const typeField =
+          typeof payload.Type === 'string'
+            ? payload.Type.toUpperCase()
+            : typeof payload.type === 'string'
+              ? payload.type.toUpperCase()
+              : null;
+
+        if (!typeField || typeField === 'CELL') {
+          console.debug('[CELL SSE] unsupported JSON shape → mutate():', payload);
+          mutate();
+        } else {
+          console.debug('[CELL SSE] unsupported JSON but type is not CELL, ignore:', typeField);
+        }
+      } catch (err) {
+        console.error(
+          '[CELL SSE] JSON parse error → mutate() fallback:',
+          err,
+          dataText,
+        );
+        // 파싱에 실패했는데 타입 정보를 알 수 없으므로,
+        // 여기서는 기존처럼 한 번만 재조회 (원하면 이 부분도 조건 걸 수 있음)
+        mutate();
+      }
     };
 
     es.onerror = (err) => console.error('[CELL SSE] error', err);
@@ -295,11 +453,11 @@ export default function DashboardCell() {
   // 4) 장비 단위 그룹핑
   // ===============================
   const equipGroups: EquipGroup[] = useMemo(() => {
-    if (!data || !data.length) return [];
+    if (!effectiveData.length) return [];
 
     const map = new Map<string, EquipGroup>();
 
-    for (const ch of data) {
+    for (const ch of effectiveData) {
       const eqpid = (ch.eqpid || ch.title || '').trim();
       if (!eqpid) continue;
 
@@ -327,7 +485,7 @@ export default function DashboardCell() {
       if (a.eqpid === b.eqpid) return a.chamberIndex - b.chamberIndex;
       return a.eqpid.localeCompare(b.eqpid);
     });
-  }, [data]);
+  }, [effectiveData]);
 
   // ✅ equipGroups 가 새로 들어올 때마다,
   //    "실제로 값이 변한 장비"만 RESET 대상에서 제거
@@ -375,9 +533,28 @@ export default function DashboardCell() {
       const title = group.title;
       const eqpidLower = title.toLowerCase();
 
-      const match = hasSearch && keys.some((kw) => eqpidLower.includes(kw));
+      // 🔍 이 장비 그룹 안에 있는 모든 채널의 "시료(batteryId)" / "시험항목(testName)"를 모아두기
+      const sampleNames = group.channels
+        .map((ch) => (ch.batteryId ?? '').toLowerCase())
+        .filter(Boolean);
 
-      // 대표 채널
+      const testNames = group.channels
+        .map((ch) => (ch.testName ?? '').toLowerCase())
+        .filter(Boolean);
+
+      // 🔍 검색 조건:
+      //   - 장비명(eqpid/title)에 포함 OR
+      //   - 시료명(batteryId)에 포함 OR
+      //   - 시험항목(testName)에 포함
+      const match =
+        hasSearch &&
+        keys.some((kw) =>
+          eqpidLower.includes(kw) ||
+          sampleNames.some((s) => s.includes(kw)) ||
+          testNames.some((t) => t.includes(kw)),
+        );
+
+      // 대표 채널, 채널 모드 집계 등 기존 로직 그대로 유지
       const withChamber = group.channels.find(
         (c) => (c.temp && c.temp !== '-') || c.chamberStatus,
       );
@@ -417,12 +594,24 @@ export default function DashboardCell() {
       });
 
       const anyAlarm = alarmCnt > 0;
-      const anyStop  = stopCnt > 0;          // ✅ STOP 여부 추가
+      const anyStop  = stopCnt > 0;
       const anyRun = runCnt > 0;
       const anyComplete = completeCnt > 0;
       const anyReady = readyCnt > 0;
       const totalChannels = group.channels.length || 1;
       const allComplete = completeCnt === totalChannels;
+
+      // 🔹 실제로 Alarms 배열에 데이터가 있는 채널이 하나라도 있는지
+      const groupHasAlarms = group.channels.some((ch) => {
+        if (typeof ch.alarmCount === 'number') {
+          return ch.alarmCount > 0;
+        }
+        if (typeof ch.hasAlarms === 'boolean') {
+          return ch.hasAlarms;
+        }
+        // 백엔드가 아직 안 올린 경우 기본 false
+        return false;
+      });
 
       // 🔹 기본 장비 상태 결정
       let ready = false;
@@ -430,20 +619,23 @@ export default function DashboardCell() {
       let icon: ListItem['icon'] = 'stay';
       let operation: ListItem['operation'] = 'available';
 
-      // 🔴 알람 또는 정지 채널이 하나라도 있으면 정지(빨간 테두리)
+// 🔴 알람 또는 정지 채널이 하나라도 있으면 정지(빨간 테두리)
       if (anyAlarm || anyStop) {
         operation = 'stop';
         icon = 'error';
-        shutdown = false;
-        if(anyAlarm){
+
+        // ✅ 알람 모드 + 실제 Alarms 배열에 데이터가 있을 때만 빨간 깜빡임
+        if (anyAlarm && groupHasAlarms) {
           shutdown = true;
+        } else {
+          shutdown = false;
         }
       } else if (anyRun) {
         // 진행 중
         operation = 'ongoing';
         icon = 'success';
 
-        // 진행 + 완료 섞여 있으면 초록 깜빡임
+        // 🔹 진행 + 완료 섞여 있으면 초록 깜빡임(기존 로직 그대로 유지)
         if (anyComplete) {
           shutdown = true;
         } else {
@@ -457,7 +649,7 @@ export default function DashboardCell() {
       } else if (anyReady && !anyRun && !anyAlarm && !anyComplete && !anyStop) {
         // Ready만 → 대기(회색)
         operation = 'available';
-        ready = true;
+        ready = false;
         icon = 'stay';
         shutdown = false;
       } else {
@@ -481,12 +673,10 @@ export default function DashboardCell() {
       // 🔸 완료 장비: 리셋 시 회색(available)로 변경
       if (resetMode === 'complete-to-available' && operation === 'completion') {
         finalOperation = 'available';
-        // ready 플래그는 operation 기준으로 CSS 먹게 두고, 별도로 건드리지 않아도 됨
       }
 
       // 온도
       const [curTempRaw, setTempRaw] = splitTemp(rep.temp);
-      // 🔸 여기서 포맷 적용
       const temp1 = formatTemp(curTempRaw);
       const temp2 = formatTemp(setTempRaw);
 
@@ -500,7 +690,7 @@ export default function DashboardCell() {
           available: '사용가능',
         };
 
-        const cellTempSuffix = ch.cellTemp ? ` (${ch.cellTemp}` : '';
+        const cellTempSuffix = ch.cellTemp ? ` (${ch.cellTemp})` : '';
 
         return {
           ch: `CH${ch.channelIndex ?? ''}`,
@@ -527,7 +717,7 @@ export default function DashboardCell() {
         x: group.channels[0]?.x ?? 0,
         y: group.channels[0]?.y ?? 0,
         title,
-        check: match,
+        check: match,          // ✅ 여기서 검색 결과 반영
         ready,
         shutdown: finalShutdown,
         operation: finalOperation,
@@ -562,10 +752,26 @@ export default function DashboardCell() {
         opDistChart: [] as { name: string; value: number }[],
         status4Chart: [] as { name: string; value: number }[],
         todayChart: [
-          { name: '방전', value: 0 },
-          { name: '충전', value: 0 },
+          {
+            name: "방전",
+            value: Number(
+              Math.abs(todayPower?.discharge ?? 0).toFixed(1)
+            ),
+          },
+          {
+            name: "충전",
+            value: Number(
+              (todayPower?.charge ?? 0).toFixed(1)
+            ),
+          },
         ],
-        monthChart: [] as { name: string; charge: number; discharge: number }[],
+        monthChart: Array.isArray(monthPower)
+          ? monthPower.map((row) => ({
+            name: row.name ?? row.name ?? "-",
+            charge: Number((row.charge ?? 0).toFixed(1)),
+            discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
+          }))
+          : [],
       };
     }
 
@@ -666,20 +872,23 @@ export default function DashboardCell() {
       value,
     }));
 
-    const todayChart = [
+    /*const todayChart = [
       { name: '방전', value: 0 },
       { name: '충전', value: 0 },
     ];
-    const monthChart: { name: string; charge: number; discharge: number }[] = [];
+    const monthChart: { name: string; charge: number; discharge: number }[] = [];*/
 
     return {
       runningChart: { total: totalEquip, running: runningEquip },
       opDistChart,
       status4Chart,
-      todayChart,
-      monthChart,
+      todayChart: [
+        { name: "방전", value: Math.abs(todayPower?.discharge ?? 0) },
+        { name: "충전", value: todayPower?.charge ?? 0 },
+      ],
+      monthChart: monthPower ?? [],
     };
-  }, [equipGroups]);
+  }, [equipGroups, todayPower, monthPower]);
 
   // ===============================
   // 7) 렌더링
@@ -720,9 +929,6 @@ export default function DashboardCell() {
         <div className="right">
           <ColorChipType2
             onReset={() => {
-              // ✅ RESET 규칙
-              //  - 완료(allComplete) 장비 → complete-to-available (파란 → 회색)
-              //  - 깜빡이는(shutdown) 장비 → clear-blink (색은 유지, 깜빡임만 제거)
               const next: Record<string, ResetMode> = {};
 
               for (const g of equipGroups) {
@@ -740,27 +946,27 @@ export default function DashboardCell() {
                 }
 
                 const anyAlarm = alarmCnt > 0;
-                const anyStop  = stopCnt > 0;
                 const anyRun = runCnt > 0;
                 const totalChannels = g.channels.length || 1;
                 const allComplete = completeCnt === totalChannels;
 
-                let shutdown = false;
-                if (anyAlarm || anyStop) {
-                  // 알람 또는 정지 → 깜빡임 대상
-                  shutdown = true;
-                } else if (anyRun && completeCnt > 0 && !allComplete) {
-                  shutdown = true;
-                }
+                // 🔹 "알람이 아닌데 깜빡이는" 장비만 clear-blink 대상
+                //    (진행 + 완료 섞인 케이스)
+                const blinkNonAlarm =
+                  !anyAlarm && anyRun && completeCnt > 0 && !allComplete;
 
                 const k = groupKeyOf(g.eqpid, g.chamberIndex);
 
                 if (allComplete) {
+                  // 파란 완료 → 회색으로
                   next[k] = 'complete-to-available';
-                } else if (shutdown) {
+                } else if (blinkNonAlarm) {
+                  // 초록 깜빡임만 깜빡임 제거
                   next[k] = 'clear-blink';
                 }
+                // 🔴 anyAlarm 인 장비는 어떤 reset도 걸지 않음
               }
+
               setResetTargets(next);
             }}
           />
@@ -777,20 +983,19 @@ export default function DashboardCell() {
             <List2
               listData={uiList}
               onResetByDetail={(item) => {
-                // eqpid / channelIndex 가 있어야 장비 키 계산 가능
                 if (!item.eqpid) return;
                 const chamberIndex = item.channelIndex ?? 1;
                 const key = groupKeyOf(item.eqpid, chamberIndex);
 
-                setResetTargets(prev => {
+                setResetTargets((prev) => {
                   const next = { ...prev };
 
-                  // ✅ 규칙:
-                  //  - 완료(operation === 'completion') → complete-to-available
-                  //  - 깜빡이는 장비(shutdown === true) → clear-blink
                   if (item.operation === 'completion') {
+                    // 완료 → 회색
                     next[key] = 'complete-to-available';
-                  } else if (item.shutdown) {
+                  } else if (item.shutdown && item.operation !== 'stop') {
+                    // 🔹 빨간 알람(stop)은 깜빡임 유지
+                    //     (shutdown 이면서 operation !== 'stop' 인 경우만 깜빡임 제거)
                     next[key] = 'clear-blink';
                   }
 

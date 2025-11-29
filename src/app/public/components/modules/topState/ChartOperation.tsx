@@ -43,6 +43,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
     });
 
     const option: echarts.EChartsOption = {
+      animation: false,
       tooltip: {
         show: false, // 기능 버전/퍼블 둘 다 툴팁 숨김
         trigger: 'item',

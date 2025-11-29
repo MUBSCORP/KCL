@@ -1,6 +1,6 @@
 'use client';
 
-import { LogItem } from '@/app/public/event-log/page';
+import type { LogItem } from '@/app/public/types/event-log';
 import { Button } from '@mui/material';
 import Image from 'next/image';
 
@@ -22,8 +22,8 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
       <div className="inner">
         <h4 className={`tit ${selectedLog.state.toLowerCase()}`}>{selectedLog.state}</h4>
         <div className={`tag ${selectedLog.processed ? 'fin' : 'info'}`} />
-        <p className="msg" dangerouslySetInnerHTML={{ __html: selectedLog.message }} />
-        <p className="sol" dangerouslySetInnerHTML={{ __html: selectedLog.solution }} />
+        <p className="msg" dangerouslySetInnerHTML={{ __html: selectedLog.message ?? '' }} />
+        <p className="sol" dangerouslySetInnerHTML={{ __html: selectedLog.solution ?? '' }} />
         {selectedLog?.time?.trim() && <p className="time">{selectedLog.time}</p>}
         <dl>
           <dt>장비</dt>
@@ -49,10 +49,10 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
           <dt>담당자</dt>
           <dd>{selectedLog.name}</dd>
         </dl>
-        <dl className="type2">
+       {/* <dl className="type2">
           <dt>조치내역</dt>
           <dd>{selectedLog.action}</dd>
-        </dl>
+        </dl>*/}
         <div className="btnWrap">
           <Button className="btnDownload">
             <span>Get Analysis Package</span>

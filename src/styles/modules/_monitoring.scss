@@ -141,7 +141,7 @@
               }
             }
             dd {
-              font-size: 1.2rem;
+              font-size: 1.1rem;
               font-weight: 600;
             }
             + dl {
@@ -305,6 +305,7 @@
               left: 0.3rem;
               top: -0.2rem;
               animation: blinkShutdown 0.5s infinite alternate;
+              pointer-events: none; // 🔥 이 줄 추가
             }
           }
           &[data-status='rest'] {
@@ -537,6 +538,7 @@
                 left: -0.3rem;
                 top: -0.3rem;
                 animation: blinkShutdown 0.5s infinite alternate; // 🔸 깜빡임 추가
+                pointer-events: none;
               }
             }
 

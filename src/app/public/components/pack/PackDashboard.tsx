@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 // ===============================
-// 타입 정의 (운영 구조 + 퍼블 구조 반영)
+// 타입 정의
 // ===============================
 export type MonitoringItem = {
   id: number;
@@ -13,17 +13,17 @@ export type MonitoringItem = {
   schedule: string;
   memo: boolean;
   memoText: string;
-  operation: string;       // charge | discharge | rest | rest-iso | pattern | balance | chargemap | pause | error ...
-  status: string;          // rest / ongoing / stop / alarm / completion ...
-  statusLabel: string;     // 대기 / 진행중 / 일시정지 / 알람 / 완료
+  operation: string;      // charge / discharge / rest ...
+  status: string;         // run / alarm / pause / ...
+  statusLabel: string;    // 대기 / 진행중 / 일시정지 / 알람
   voltage: string;
   current: string;
   power: string;
   step: string;
   cycle: string;
   rly: string;
-  dgv?: string;            // 옛 퍼블에서 쓰던 필드 (있으면 사용)
-  chamber?: string;        // 새 퍼블에서 사용하는 챔버/온도 값
+  dgv?: string;
+  chamber?: string;
   temp: string;
   humidity: string;
   cycles: number;
@@ -33,28 +33,39 @@ export type MonitoringItem = {
   y?: number;
   eqpid?: string;
   channelIndex?: number;
-  shutdown?: boolean;      // 테두리 점등
-  powerOn?: boolean;       // 파워 볼드/레드 표시
+  chamberIndex?: number;
+  shutdown?: boolean;
+  powerOn?: boolean;
+
+  // 🔹 알람 존재 여부(백엔드에서 내려주면 사용)
+  alarmCount?: number;
+  hasAlarms?: boolean;
 };
+
+// 🔹 PACK UI용 모드 (CELL과 동일 컨셉)
+type ChannelMode = 'run' | 'stop' | 'alarm' | 'complete' | 'ready' | 'idle';
+type UiOperation = 'available' | 'ongoing' | 'stop' | 'completion';
 
 // ===============================
 // 통신 도구
 // ===============================
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? '';
+
 const LIST_API = `${API_BASE_URL}/api/monitoring/PACK/list`;
 const SSE_URL = `${API_BASE_URL}/api/monitoring/sse/telemetry`;
+
+const TODAY_POWER_API = `${API_BASE_URL}/api/power/today?type=PACK`;
+const MONTH_POWER_API = `${API_BASE_URL}/api/power/month?type=PACK`;
 
 const fetcher = async (path: string) => {
   const res = await fetch(path, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as MonitoringItem[];
+  return await res.json();
 };
 
 // ===============================
-// 디자인 퍼블 경로 (uiux 기준으로 변경)
+// 퍼블 경로
 // ===============================
-
-// topState
 import ChartRunning from '@/app/public/components/modules/topState/ChartRunning';
 import ChartState from '@/app/public/components/modules/topState/ChartState';
 import ChartOperation from '@/app/public/components/modules/topState/ChartOperation';
@@ -62,160 +73,376 @@ import ChartToday from '@/app/public/components/modules/topState/ChartToday';
 import ChartMonth from '@/app/public/components/modules/topState/ChartMonth';
 import TopStateCenter from '@/app/public/components/modules/topState/TopStateCenter';
 
-// topFilter
 import ColorChip from '@/app/public/components/modules/topFilter/ColorChip';
 import SearchArea from '@/app/public/components/modules/topFilter/SearchArea';
 import PageTitle from '@/app/public/components/modules/PageTitle';
 import titleIcon from '@/assets/images/icon/detail.png';
 
-// monitoring
 import List from '@/app/public/components/modules/monitoring/List';
+
+// ===============================
+// 상태 유틸: PACK 채널 → 모드
+// ===============================
+function normalizeEn(s?: string | null): string {
+  if (!s) return '';
+  return s.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function getPackMode(i: MonitoringItem): ChannelMode {
+  const s = normalizeEn(i.status);
+  const label = i.statusLabel?.trim();
+
+  if (s === 'alarm' || label === '알람') return 'alarm';
+  if (s === 'pause' || label === '일시정지') return 'stop';
+  if (s === 'run' || s === 'ongoing' || label === '진행중') return 'run';
+
+  if (label?.includes('완료')) return 'complete';
+
+  if (s === 'rest' || label === '대기') return 'ready';
+
+  return 'idle';
+}
+
+// 🔹 셀과 동일하게, “그룹(장비) 상태를 한 번에 계산”하는 유틸
+function calcGroupState(channels: MonitoringItem[]): {
+  uiOperation: UiOperation;
+  uiShutdown: boolean;
+  groupHasAlarms: boolean;
+} {
+  const modes = channels.map(getPackMode);
+
+  let runCnt = 0;
+  let alarmCnt = 0;
+  let stopCnt = 0;
+  let completeCnt = 0;
+  let readyCnt = 0;
+
+  for (const m of modes) {
+    if (m === 'run') runCnt++;
+    else if (m === 'alarm') alarmCnt++;
+    else if (m === 'stop') stopCnt++;
+    else if (m === 'complete') completeCnt++;
+    else if (m === 'ready') readyCnt++;
+  }
+
+  const totalChannels = channels.length || 1;
+  const anyRun = runCnt > 0;
+  const anyAlarmMode = alarmCnt > 0;
+  const anyStopMode = stopCnt > 0;
+  const allComplete = completeCnt === totalChannels;
+
+  // 🔴 셀과 동일하게, 알람 판단은 mode + alarmCount/hasAlarms 모두 고려
+  const groupHasAlarms = channels.some((ch) => {
+    const mode = getPackMode(ch);
+    if (mode === 'alarm') return true;
+    if (typeof ch.alarmCount === 'number' && ch.alarmCount > 0) return true;
+    if (typeof ch.hasAlarms === 'boolean' && ch.hasAlarms) return true;
+    return false;
+  });
+
+  let uiOperation: UiOperation = 'available';
+  let uiShutdown = false;
+
+  if (groupHasAlarms) {
+    // 🔥 알람 존재 → CSS 상 “정지 + 깜빡임”
+    uiOperation = 'stop';
+    uiShutdown = true;
+  } else if (anyStopMode) {
+    // ⏸ 일시정지(알람은 아님) → 정지, 깜빡임 없음
+    uiOperation = 'stop';
+    uiShutdown = false;
+  } else if (anyRun && !allComplete) {
+    // ▶ 진행중
+    uiOperation = 'ongoing';
+    uiShutdown = false;
+  } else if (allComplete) {
+    // ✅ 전체 완료
+    uiOperation = 'completion';
+    uiShutdown = false;
+  } else if (readyCnt > 0 && !anyRun && !anyAlarmMode && !anyStopMode && !allComplete) {
+    // ⏳ Ready만 있는 경우
+    uiOperation = 'available';
+    uiShutdown = false;
+  } else {
+    uiOperation = 'available';
+    uiShutdown = false;
+  }
+
+  return { uiOperation, uiShutdown, groupHasAlarms };
+}
+
+// ===============================
+// PACK 장비 그룹 타입 (eqpid + chamberIndex 기준)
+// ===============================
+type EquipGroup = {
+  key: string;           // eqpid_chamberIndex
+  title: string;         // eqpid
+  eqpid: string;
+  chamberIndex: number;
+  channels: MonitoringItem[];
+};
 
 export default function DashboardPack() {
   // ===============================
-  // ✅ 1) 장비 목록 로딩 (실데이터)
+  // 1) 장비 목록 로딩 (채널 단위)
   // ===============================
-  const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
-    refreshInterval: 0,
-    revalidateOnFocus: false,
-  });
+  const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(
+    LIST_API,
+    fetcher,
+    {
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+    },
+  );
   const loading = !listData && !error;
 
   // ===============================
-  // ✅ 2) SSE: 데이터 갱신 트리거
+  // 2) SSE: 갱신 트리거 (PACK은 전체 리스트 재조회)
   // ===============================
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const es = new EventSource(SSE_URL);
-    es.onopen = () => console.info('[SSE] connected:', SSE_URL);
-    es.onmessage = () => mutate(); // 수신 시 목록 재검증
-    es.onerror = (err) => console.error('[SSE] error', err);
+    es.onopen = () => console.info('[PACK SSE] connected:', SSE_URL);
+    es.onmessage = () => mutate();
+    es.onerror = (err) => console.error('[PACK SSE] error', err);
 
-    return () => {
-      console.info('[SSE] disconnected');
-      es.close();
-    };
+    return () => es.close();
   }, [mutate]);
 
   // ===============================
-  // ✅ 3) 검색 필터 (SearchArea 연동)
+  // 3) PACK 채널 → 장비 그룹핑 (eqpid + chamberIndex)
+  // ===============================
+  const equipGroups: EquipGroup[] = useMemo(() => {
+    if (!listData || !listData.length) return [];
+
+    const map = new Map<string, EquipGroup>();
+
+    for (const ch of listData) {
+      const eqpid = (ch.eqpid || ch.title || '').trim();
+      if (!eqpid) continue;
+
+      const chamberIndex =
+        typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0
+          ? ch.chamberIndex
+          : 1;
+
+      const key = `${eqpid}_${chamberIndex}`;
+      let g = map.get(key);
+      if (!g) {
+        g = {
+          key,
+          title: eqpid,
+          eqpid,
+          chamberIndex,
+          channels: [],
+        };
+        map.set(key, g);
+      }
+      g.channels.push(ch);
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.eqpid === b.eqpid) return a.chamberIndex - b.chamberIndex;
+      return a.eqpid.localeCompare(b.eqpid);
+    });
+  }, [listData]);
+
+  // ===============================
+  // 4) 검색 + 그룹 → List용 아이템 (CELL과 동일 개념)
   // ===============================
   const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
 
   const displayList: MonitoringItem[] = useMemo(() => {
-    const src = listData ?? [];
-    if (!searchKeywords.length) {
-      // 기본적으로 check는 false로 초기화
-      return src.map((i) => ({ ...i, check: false }));
-    }
-
     const keys = searchKeywords
       .map((k) => k.trim().toLowerCase())
       .filter(Boolean);
+    const hasSearch = keys.length > 0;
 
-    return src.map((item) => {
-      const title = item.title?.toLowerCase() ?? '';
-      const eqpid = item.eqpid?.toLowerCase() ?? '';
-      const match = keys.some((kw) => title.includes(kw) || eqpid.includes(kw));
-      return { ...item, check: match };
-    });
-  }, [listData, searchKeywords]);
+    const result: MonitoringItem[] = [];
+
+    for (const g of equipGroups) {
+      const eqpidLower = g.eqpid.toLowerCase();
+
+      // 그룹 내 채널 스케줄 문자열도 검색에 포함
+      const schedules = g.channels
+        .map((ch) => ch.schedule?.toLowerCase() ?? '')
+        .filter(Boolean);
+
+      const match =
+        hasSearch &&
+        keys.some(
+          (kw) =>
+            eqpidLower.includes(kw) ||
+            schedules.some((s) => s.includes(kw)),
+        );
+
+      // 대표 채널 하나 선택 (온도/습도/좌표가 의미 있는 채널 우선)
+      const rep =
+        g.channels.find((c) => c.temp && c.temp !== '-') ?? g.channels[0];
+
+      // ✅ 셀과 동일한 그룹 상태/깜빡임 계산 재사용
+      const { uiOperation, uiShutdown } = calcGroupState(g.channels);
+
+      const item: MonitoringItem = {
+        ...rep,
+        id: rep.id, // 필요하면 그룹 index로 교체 가능
+        title: g.title,
+        eqpid: g.eqpid,
+        chamberIndex: g.chamberIndex,
+        check: match,
+        operation: uiOperation,  // 'available' | 'ongoing' | 'stop' | 'completion'
+        shutdown: uiShutdown,    // 🔥 List/CSS에서 깜빡임 기준
+        powerOn: uiOperation === 'ongoing',
+      };
+
+      result.push(item);
+    }
+
+    return result;
+  }, [equipGroups, searchKeywords]);
 
   // ===============================
-  // ✅ 4) 차트 데이터 집계 (실데이터 → 퍼블 차트에 주입)
+  // 5) 상단 차트: 장비 가동률/상태 (장비=eqpid+chamberIndex 기준)
   // ===============================
-  const { runningChart, opDistChart, status4Chart, todayChart, monthChart } = useMemo(() => {
-    if (!listData?.length) {
+  const { runningChart, opDistChart, status4Chart } = useMemo(() => {
+    if (!equipGroups.length) {
       return {
         runningChart: { total: 0, running: 0 },
         opDistChart: [] as { name: string; value: number }[],
         status4Chart: [] as { name: string; value: number }[],
-        todayChart: [
-          { name: '방전', value: 0 },
-          { name: '충전', value: 0 },
-        ],
-        monthChart: [] as { name: string; charge: number; discharge: number }[],
       };
     }
 
-    const total = listData.length;
+    const totalEquip = equipGroups.length;
+    let runningEquip = 0;
 
-    // status (run/rest/pause/alarm 등) or statusLabel 기반 running 수
-    const running = listData.filter(
-      (i) =>
-        i.status === 'run' ||
-        i.status === 'ongoing' || // 새 퍼블 status 값 고려
-        i.statusLabel === '진행중',
-    ).length;
+    // ✅ 셀과 동일하게, 그룹 상태를 기반으로 장비 가동 여부 판단
+    for (const g of equipGroups) {
+      const { uiOperation } = calcGroupState(g.channels);
+      if (uiOperation === 'ongoing') {
+        runningEquip++;
+      }
+    }
 
-    // === 4-1. 운전 모드 → ChartState (장비현황) ===
+    // 운전모드 분포는 채널 기준 (기존 유지)
+    const allChannels = equipGroups.flatMap((g) => g.channels);
+
     const opBuckets: Record<string, number> = {
       Charge: 0,
       Discharge: 0,
       Rest: 0,
       'Rest(ISO)': 0,
       Pattern: 0,
-      /*Balance: 0,*/
       Chargemap: 0,
     };
 
-    listData.forEach((i) => {
-      const op = (i.operation || '').toLowerCase();
-      if (op === 'charge') opBuckets.Charge++;
-      else if (op === 'discharge') opBuckets.Discharge++;
-      else if (op === 'rest-iso') opBuckets['Rest(ISO)']++;
-      else if (op === 'pattern') opBuckets.Pattern++;
-      /*else if (op === 'balance') opBuckets.Balance++;*/
-      else if (op === 'chargemap') opBuckets.Chargemap++;
-      else opBuckets.Rest++;
-    });
+    for (const ch of allChannels) {
+      const op = (ch.operation || '').toLowerCase();
+      switch (op) {
+        case 'charge':
+          opBuckets.Charge++;
+          break;
+        case 'discharge':
+          opBuckets.Discharge++;
+          break;
+        case 'rest':
+          opBuckets.Rest++;
+          break;
+        case 'rest-iso':
+          opBuckets['Rest(ISO)']++;
+          break;
+        case 'pattern':
+          opBuckets.Pattern++;
+          break;
+        case 'chargemap':
+          opBuckets.Chargemap++;
+          break;
+        default:
+          opBuckets.Rest++;
+      }
+    }
 
-    const opDistChart = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
+    const opDistChart = Object.entries(opBuckets).map(([name, value]) => ({
+      name,
+      value,
+    }));
 
-    // === 4-2. 상태 4종 → ChartOperation (장비가동현황) ===
-    const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
-      대기: 0,
-      진행중: 0,
-      일시정지: 0,
-      알람: 0,
-    };
+    // 상태 분포도 채널 기준 (기존 유지)
+    const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> =
+      {
+        대기: 0,
+        진행중: 0,
+        일시정지: 0,
+        알람: 0,
+      };
 
-    listData.forEach((i) => {
-      const label = i.statusLabel;
+    for (const ch of allChannels) {
+      const label = ch.statusLabel;
       if (label === '대기') statusBuckets['대기']++;
       else if (label === '일시정지') statusBuckets['일시정지']++;
       else if (label === '알람') statusBuckets['알람']++;
-      else statusBuckets['진행중']++; // 나머지는 모두 진행중 처리
-    });
+      else statusBuckets['진행중']++;
+    }
 
     const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({
       name,
       value,
     }));
 
-    // === 4-3. 전력량 차트 (현재는 0, 향후 별도 API 연동) ===
-    const todayChart = [
-      { name: '방전', value: 0 },
-      { name: '충전', value: 0 },
-    ];
-    const monthChart: { name: string; charge: number; discharge: number }[] = [];
-
     return {
-      runningChart: { total, running },
+      runningChart: { total: totalEquip, running: runningEquip },
       opDistChart,
       status4Chart,
-      todayChart,
-      monthChart,
     };
-  }, [listData]);
+  }, [equipGroups]);
 
   // ===============================
-  // ✅ 5) 렌더링 (디자인 퍼블 레이아웃 그대로 사용)
+  // 6) 전력량 API 연동 (오늘 / 월) – 소수 1자리
+  // ===============================
+  const { data: todayPower } = useSWR(TODAY_POWER_API, fetcher, {
+    refreshInterval: 3000,
+  });
+
+  const { data: monthPower } = useSWR(MONTH_POWER_API, fetcher, {
+    refreshInterval: 10000,
+  });
+
+  const todayChart = useMemo(() => {
+    if (!todayPower) {
+      return [
+        { name: '방전', value: 0 },
+        { name: '충전', value: 0 },
+      ];
+    }
+
+    return [
+      {
+        name: '방전',
+        value: Number(Math.abs(todayPower.discharge ?? 0).toFixed(1)),
+      },
+      {
+        name: '충전',
+        value: Number((todayPower.charge ?? 0).toFixed(1)),
+      },
+    ];
+  }, [todayPower]);
+
+  const monthChart = useMemo(() => {
+    if (!monthPower || !Array.isArray(monthPower)) return [];
+
+    return monthPower.map((row: any) => ({
+      name: row.inputdate ?? row.month ?? '-', // 백엔드 필드명에 맞게 조정
+      charge: Number((row.charge ?? 0).toFixed(1)),
+      discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
+    }));
+  }, [monthPower]);
+
+  // ===============================
+  // 7) 렌더링
   // ===============================
   return (
     <>
-      {/* topState */}
       <section className="topState">
         <h2 className="ir">상단 기능 화면</h2>
         <div className="left">
@@ -227,10 +454,11 @@ export default function DashboardPack() {
           <ChartState title="장비현황" data={opDistChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
         </div>
+
         <div className="center">
-          {/* 퍼블 버전과 동일하게 사용 (필요하면 equipType="PACK" prop 추가 가능) */}
           <TopStateCenter equipType="PACK" />
         </div>
+
         <div className="right">
           <ChartToday title="오늘 전력량" data={todayChart} />
           <ul className="legend">
@@ -241,11 +469,9 @@ export default function DashboardPack() {
         </div>
       </section>
 
-      {/* topFilter */}
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세" icon={titleIcon} />
-          {/* 기능 유지: 검색 결과 → searchKeywords 반영 */}
           <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">
@@ -253,13 +479,13 @@ export default function DashboardPack() {
         </div>
       </section>
 
-      {/* monitoring */}
       <section className="monitoring">
         <h2 className="ir">모니터링 화면</h2>
         <div className="innerWrapper">
           {loading && <div className="loading">불러오는 중…</div>}
           {error && <div className="error">목록을 불러오지 못했습니다.</div>}
-          {listData && <List listData={displayList} />}
+          {/* 🔹 List에는 “장비(= eqpid + chamberIndex)” 단위 배열 전달 */}
+          {displayList && <List listData={displayList} />}
         </div>
       </section>
     </>

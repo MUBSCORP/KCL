@@ -260,9 +260,9 @@ export default function List({ listData, onResetByDetail }: ListProps) {
                   </div>
                   <div className="bottomArea">
                     <i className={item.icon} />
-                    <span>{item.temp1}</span>
+                    <span>{item.temp1 || '-'}</span>
                     <em>/</em>
-                    <strong>{item.temp2}</strong>
+                    <strong>{item.temp2 || '-'}</strong>
                   </div>
                 </div>
               </li>

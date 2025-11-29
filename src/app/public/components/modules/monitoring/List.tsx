@@ -58,6 +58,7 @@ interface ListItem {
   // 메모 API 식별자
   eqpid?: string;
   channelIndex?: number;
+  chamberIndex?: number;
 }
 
 interface ListProps {
@@ -150,17 +151,38 @@ export default function List({ listData }: ListProps) {
   // 공통: 메모 API 식별자 확인
   const ensureIds = (
     item: ListItem | null,
-  ): { eqpid: string; channel: number } | null => {
-    if (!item?.eqpid || item.channelIndex == null) {
-      showMsg('eqpid/channelIndex가 없어 메모 API를 호출할 수 없습니다.', 'error');
-      console.warn('Missing ids for memo API', item);
+  ): { eqpid: string; index: number } | null => {
+    if (!item) {
+      showMsg('선택된 항목이 없어 메모 API를 호출할 수 없습니다.', 'error');
       return null;
     }
-    return { eqpid: item.eqpid, channel: item.channelIndex };
+
+    const eqpid = (item.eqpid || item.title || '').trim();
+
+    // ✅ 메모 키는 "챔버 인덱스 우선"
+    const index =
+      typeof item.chamberIndex === 'number' && item.chamberIndex > 0
+        ? item.chamberIndex
+        : typeof item.channelIndex === 'number' && item.channelIndex > 0
+          ? item.channelIndex
+          : 0;
+
+    if (!eqpid || index <= 0) {
+      showMsg(
+        `eqpid 또는 chamberIndex/channelIndex가 없어 메모 API를 호출할 수 없습니다.`,
+        'error',
+      );
+      console.warn('Missing ids for memo API', { item, eqpid, index });
+      return null;
+    }
+
+    return { eqpid, index };
   };
 
   // --- 모달 열기/닫기 (항상 편집 가능) ---
   const handleClickOpen = (raw: ListItem) => {
+    console.log('[CLICK]', raw.eqpid, raw.chamberIndex, raw.channelIndex);
+
     const item = withOverride(raw);
     setSelectedItem(item);
     setSelectedMemo(item);
@@ -191,7 +213,8 @@ export default function List({ listData }: ListProps) {
           credentials: 'include',
           body: JSON.stringify({
             eqpid: ids.eqpid,
-            channel: ids.channel,
+            // ✅ channel 파라미터 값 = chamberIndex (없으면 channelIndex)
+            channel: ids.index,
             content: text,
             userId: 'web',
           }),
@@ -228,7 +251,7 @@ export default function List({ listData }: ListProps) {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo?eqpid=${encodeURIComponent(
           ids.eqpid,
-        )}&channel=${ids.channel}`,
+        )}&channel=${ids.index}`,   // ✅ 여기
         { method: 'DELETE', credentials: 'include' },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -278,7 +301,7 @@ export default function List({ listData }: ListProps) {
                 <div className="topArea">
                   {/* 제목 클릭 시 메모 모달 오픈 */}
                   <h3 className="tit" onClick={() => handleClickOpen(item)}>
-                    {item.title}
+                    {item.title} - {item.chamberIndex}
                   </h3>
                   <div className="right">
                     {item.memo && (
@@ -334,7 +357,7 @@ export default function List({ listData }: ListProps) {
                     <dt>
                       챔버<small>현재/설정</small>
                     </dt>
-                    <dd>{item.chamber ?? item.temp}</dd>
+                    <dd>{item.chamber || '-'}</dd>
                   </dl>
                   <dl>
                     <dt>

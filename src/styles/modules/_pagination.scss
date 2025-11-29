@@ -2,7 +2,7 @@
 @use 'common/mixins' as *;
 
 aside.pagenation {
-  @include flexArea($gap: 0.3rem);
+  @include flexArea($gap: 1rem);
   margin-top: 2rem;
   button {
     width: 1.8rem;

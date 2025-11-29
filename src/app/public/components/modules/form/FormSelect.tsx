@@ -15,8 +15,20 @@ export default function FormSelect({ value, options, onChange }: FormSelectProps
       onChange(options[0].value);
     }
   }, [value, options, onChange]);
+
   return (
-    <Select value={value} onChange={(e) => onChange(e.target.value)}>
+    <Select
+      value={value}
+      onChange={(e) => onChange(e.target.value as string)}
+      MenuProps={{
+        PaperProps: {
+          style: {
+            maxHeight: 400,      // 🔥 드롭다운 최대 높이
+            overflowY: 'auto',   // 🔥 넘치면 스크롤
+          },
+        },
+      }}
+    >
       {options.map((option) => (
         <MenuItem key={option.value} value={option.value}>
           {option.label}

@@ -44,6 +44,8 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     if (!chartRef.current) return;
 
     const option: echarts.EChartsOption = {
+      // 🔴 전역 애니메이션 OFF
+      animation: false,
       tooltip: {
         show: false,                    // 퍼블: 툴팁 비표시
         trigger: 'item',

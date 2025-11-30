@@ -75,7 +75,7 @@ const POWER_TODAY_API = `${API_BASE_URL}/api/power/today?type=CELL`;
 const POWER_MONTH_API = `${API_BASE_URL}/api/power/month?type=CELL`;
 
 type TodayPower = { charge: number; discharge: number };
-type MonthPower = { name: string; charge: number; discharge: number };
+type MonthPower = { month: string; charge: number; discharge: number };
 
 const fetcher = async (path: string) => {
   const res = await fetch(path, { cache: 'no-store' });
@@ -776,7 +776,7 @@ export default function DashboardCell() {
         ],
         monthChart: Array.isArray(monthPower)
           ? monthPower.map((row) => ({
-            name: row.name ?? row.name ?? "-",
+            name: row.month ??  "-",
             charge: Number((row.charge ?? 0).toFixed(1)),
             discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
           }))
@@ -895,7 +895,14 @@ export default function DashboardCell() {
         { name: "방전", value: Math.abs(todayPower?.discharge ?? 0) },
         { name: "충전", value: todayPower?.charge ?? 0 },
       ],
-      monthChart: monthPower ?? [],
+      monthChart: Array.isArray(monthPower)
+        ? monthPower.map((row) => ({
+          // ✅ 여기서도 동일하게 month → name 으로 매핑
+          name: row.month ?? '-',
+          charge: Number((row.charge ?? 0).toFixed(1)),
+          discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
+        }))
+        : [],
     };
   }, [equipGroups, todayPower, monthPower]);
 

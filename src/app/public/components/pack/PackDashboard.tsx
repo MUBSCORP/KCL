@@ -36,7 +36,7 @@ export type MonitoringItem = {
   chamberIndex?: number;
   shutdown?: boolean;
   powerOn?: boolean;
-
+  rawStatus?: string;
   // 🔹 알람 존재 여부(백엔드에서 내려주면 사용)
   alarmCount?: number;
   hasAlarms?: boolean;
@@ -44,7 +44,7 @@ export type MonitoringItem = {
 
 // 🔹 PACK UI용 모드 (CELL과 동일 컨셉)
 type ChannelMode = 'run' | 'stop' | 'alarm' | 'complete' | 'ready' | 'idle';
-type UiOperation = 'available' | 'ongoing' | 'stop' | 'completion';
+type UiOperation = 'available' | 'ongoing' | 'stop' | 'completion' | 'Power sharing';
 
 // ===============================
 // 통신 도구
@@ -131,7 +131,7 @@ function calcGroupState(channels: MonitoringItem[]): {
   const anyStopMode = stopCnt > 0;
   const allComplete = completeCnt === totalChannels;
 
-  // 🔴 셀과 동일하게, 알람 판단은 mode + alarmCount/hasAlarms 모두 고려
+  // 🔴 알람 판단은 mode + alarmCount/hasAlarms 모두 고려
   const groupHasAlarms = channels.some((ch) => {
     const mode = getPackMode(ch);
     if (mode === 'alarm') return true;
@@ -144,23 +144,18 @@ function calcGroupState(channels: MonitoringItem[]): {
   let uiShutdown = false;
 
   if (groupHasAlarms) {
-    // 🔥 알람 존재 → CSS 상 “정지 + 깜빡임”
     uiOperation = 'stop';
     uiShutdown = true;
   } else if (anyStopMode) {
-    // ⏸ 일시정지(알람은 아님) → 정지, 깜빡임 없음
     uiOperation = 'stop';
     uiShutdown = false;
   } else if (anyRun && !allComplete) {
-    // ▶ 진행중
     uiOperation = 'ongoing';
     uiShutdown = false;
   } else if (allComplete) {
-    // ✅ 전체 완료
     uiOperation = 'completion';
     uiShutdown = false;
   } else if (readyCnt > 0 && !anyRun && !anyAlarmMode && !anyStopMode && !allComplete) {
-    // ⏳ Ready만 있는 경우
     uiOperation = 'available';
     uiShutdown = false;
   } else {
@@ -197,18 +192,92 @@ export default function DashboardPack() {
   const loading = !listData && !error;
 
   // ===============================
-  // 2) SSE: 갱신 트리거 (PACK은 전체 리스트 재조회)
+  // 6) 전력량 API 연동 (오늘 / 월) – 소수 1자리
+  //    ⛔ 폴링 제거, SSE에서 mutate 호출
+  // ===============================
+  const { data: todayPower, mutate: mutateToday } = useSWR(
+    TODAY_POWER_API,
+    fetcher,
+    {
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+    },
+  );
+
+  const { data: monthPower, mutate: mutateMonth } = useSWR(
+    MONTH_POWER_API,
+    fetcher,
+    {
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+    },
+  );
+
+  const todayChart = useMemo(() => {
+    if (!todayPower) {
+      return [
+        { name: '방전', value: 0 },
+        { name: '충전', value: 0 },
+      ];
+    }
+
+    return [
+      {
+        name: '방전',
+        value: Number(Math.abs(todayPower.discharge ?? 0).toFixed(1)),
+      },
+      {
+        name: '충전',
+        value: Number((todayPower.charge ?? 0).toFixed(1)),
+      },
+    ];
+  }, [todayPower]);
+
+  const monthChart = useMemo(() => {
+    if (!monthPower || !Array.isArray(monthPower)) return [];
+
+    return monthPower.map((row: any) => ({
+      name: row.inputdate ?? row.month ?? '-', // 백엔드 필드명에 맞게 조정
+      charge: Number((row.charge ?? 0).toFixed(1)),
+      discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
+    }));
+  }, [monthPower]);
+
+  // ===============================
+  // 2) SSE: 갱신 트리거 (PACK은 SSE 올 때만 재조회)
   // ===============================
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const es = new EventSource(SSE_URL);
+
     es.onopen = () => console.info('[PACK SSE] connected:', SSE_URL);
-    es.onmessage = () => mutate();
-    es.onerror = (err) => console.error('[PACK SSE] error', err);
+
+    es.onmessage = (ev) => {
+      // PACK용 Delta 이벤트일 때만 전체 갱신
+      try {
+        const data = JSON.parse(ev.data);
+
+        // IngestService 쪽 포맷 가정:
+        // { kind: "MONITORING_DELTA", type: "PACK" | "CELL", ... }
+        if (data?.kind === 'MONITORING_DELTA' && data?.type === 'PACK') {
+          mutate();
+          mutateToday();
+          mutateMonth();
+        }
+      } catch (e) {
+        // JSON 아닌 이벤트면 최소 장비 목록만 갱신
+        console.debug('[PACK SSE] non-JSON event, fallback mutate()', e);
+        mutate();
+      }
+    };
+
+    es.onerror = (err) => {
+      console.error('[PACK SSE] error', err);
+    };
 
     return () => es.close();
-  }, [mutate]);
+  }, [mutate, mutateToday, mutateMonth]);
 
   // ===============================
   // 3) PACK 채널 → 장비 그룹핑 (eqpid + chamberIndex)
@@ -284,16 +353,20 @@ export default function DashboardPack() {
       // ✅ 셀과 동일한 그룹 상태/깜빡임 계산 재사용
       const { uiOperation, uiShutdown } = calcGroupState(g.channels);
 
+      // 🔴 “Power sharing”은 원본 상태(rawStatus / operation) 기준으로 판단
+      const rawOperation = (rep.rawStatus ?? rep.operation ?? '').trim();
+      const isPowerSharing = rawOperation === 'Power sharing';
+
       const item: MonitoringItem = {
         ...rep,
-        id: rep.id, // 필요하면 그룹 index로 교체 가능
+        id: rep.id,
         title: g.title,
         eqpid: g.eqpid,
         chamberIndex: g.chamberIndex,
         check: match,
         operation: uiOperation,  // 'available' | 'ongoing' | 'stop' | 'completion'
         shutdown: uiShutdown,    // 🔥 List/CSS에서 깜빡임 기준
-        powerOn: uiOperation === 'ongoing',
+        powerOn: isPowerSharing, // 🔥 Power sharing 인 경우만 파워 빨간색
       };
 
       result.push(item);
@@ -398,47 +471,6 @@ export default function DashboardPack() {
   }, [equipGroups]);
 
   // ===============================
-  // 6) 전력량 API 연동 (오늘 / 월) – 소수 1자리
-  // ===============================
-  const { data: todayPower } = useSWR(TODAY_POWER_API, fetcher, {
-    refreshInterval: 3000,
-  });
-
-  const { data: monthPower } = useSWR(MONTH_POWER_API, fetcher, {
-    refreshInterval: 10000,
-  });
-
-  const todayChart = useMemo(() => {
-    if (!todayPower) {
-      return [
-        { name: '방전', value: 0 },
-        { name: '충전', value: 0 },
-      ];
-    }
-
-    return [
-      {
-        name: '방전',
-        value: Number(Math.abs(todayPower.discharge ?? 0).toFixed(1)),
-      },
-      {
-        name: '충전',
-        value: Number((todayPower.charge ?? 0).toFixed(1)),
-      },
-    ];
-  }, [todayPower]);
-
-  const monthChart = useMemo(() => {
-    if (!monthPower || !Array.isArray(monthPower)) return [];
-
-    return monthPower.map((row: any) => ({
-      name: row.inputdate ?? row.month ?? '-', // 백엔드 필드명에 맞게 조정
-      charge: Number((row.charge ?? 0).toFixed(1)),
-      discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
-    }));
-  }, [monthPower]);
-
-  // ===============================
   // 7) 렌더링
   // ===============================
   return (
@@ -484,7 +516,6 @@ export default function DashboardPack() {
         <div className="innerWrapper">
           {loading && <div className="loading">불러오는 중…</div>}
           {error && <div className="error">목록을 불러오지 못했습니다.</div>}
-          {/* 🔹 List에는 “장비(= eqpid + chamberIndex)” 단위 배열 전달 */}
           {displayList && <List listData={displayList} />}
         </div>
       </section>

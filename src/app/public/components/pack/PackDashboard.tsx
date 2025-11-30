@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 
 // ===============================
@@ -68,17 +68,22 @@ const fetcher = async (path: string) => {
 // ===============================
 import ChartRunning from '@/app/public/components/modules/topState/ChartRunning';
 import ChartState from '@/app/public/components/modules/topState/ChartState';
+import ChartState2 from '@/app/public/components/modules/topState/ChartState2';
 import ChartOperation from '@/app/public/components/modules/topState/ChartOperation';
 import ChartToday from '@/app/public/components/modules/topState/ChartToday';
 import ChartMonth from '@/app/public/components/modules/topState/ChartMonth';
 import TopStateCenter from '@/app/public/components/modules/topState/TopStateCenter';
 
 import ColorChip from '@/app/public/components/modules/topFilter/ColorChip';
+import ColorChip2 from '@/app/public/components/modules/topFilter/ColorChip2';
 import SearchArea from '@/app/public/components/modules/topFilter/SearchArea';
 import PageTitle from '@/app/public/components/modules/PageTitle';
 import titleIcon from '@/assets/images/icon/detail.png';
 
 import List from '@/app/public/components/modules/monitoring/List';
+
+import { Dialog, DialogTitle, DialogContent, IconButton, Button } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 // ===============================
 // 상태 유틸: PACK 채널 → 모드
@@ -178,6 +183,10 @@ type EquipGroup = {
 };
 
 export default function DashboardPack() {
+  // 🔹 List 강제 리렌더용 토큰 (최초 1회)
+  const [listRenderToken, setListRenderToken] = useState(0);
+  const hasForcedListRenderRef = useRef(false);
+
   // ===============================
   // 1) 장비 목록 로딩 (채널 단위)
   // ===============================
@@ -376,6 +385,28 @@ export default function DashboardPack() {
   }, [equipGroups, searchKeywords]);
 
   // ===============================
+  // 4-1) 최초 진입 시 List 한 번 강제 리렌더
+  // ===============================
+  useEffect(() => {
+    // 이미 한 번 강제 리렌더 했다면 종료
+    if (hasForcedListRenderRef.current) return;
+
+    // 아직 로딩 중이거나, 표시할 데이터가 없으면 대기
+    if (loading || !displayList || displayList.length === 0) return;
+
+    hasForcedListRenderRef.current = true;
+
+    // 다음 프레임에 key 변경해서 List 전체 리마운트
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => {
+        setListRenderToken((prev) => prev + 1);
+      });
+    } else {
+      setListRenderToken((prev) => prev + 1);
+    }
+  }, [loading, displayList]);
+
+  // ===============================
   // 5) 상단 차트: 장비 가동률/상태 (장비=eqpid+chamberIndex 기준)
   // ===============================
   const { runningChart, opDistChart, status4Chart } = useMemo(() => {
@@ -470,6 +501,14 @@ export default function DashboardPack() {
     };
   }, [equipGroups]);
 
+
+  // chart zoom
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+
+  // card zoom
+  const [isZoomOpen2, setIsZoomOpen2] = useState(false);
+
+
   // ===============================
   // 7) 렌더링
   // ===============================
@@ -485,6 +524,9 @@ export default function DashboardPack() {
           />
           <ChartState title="장비현황" data={opDistChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
+          <Button className="btnZoom" onClick={() => setIsZoomOpen(true)}>
+            확대보기
+          </Button>
         </div>
 
         <div className="center">
@@ -504,6 +546,9 @@ export default function DashboardPack() {
       <section className="topFilter">
         <div className="left">
           <PageTitle title="장비상세" icon={titleIcon} />
+          <Button className="btnZoom" onClick={() => setIsZoomOpen2(true)}>
+            확대보기
+          </Button>
           <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">
@@ -516,9 +561,70 @@ export default function DashboardPack() {
         <div className="innerWrapper">
           {loading && <div className="loading">불러오는 중…</div>}
           {error && <div className="error">목록을 불러오지 못했습니다.</div>}
-          {displayList && <List listData={displayList} />}
+          {displayList && <List key={listRenderToken} listData={displayList} />}
         </div>
       </section>
+
+
+      {/* chart zoom dialog */}
+      <Dialog className="dialogCont wide" open={isZoomOpen} onClose={() => setIsZoomOpen(false)}>
+        <div className="modalWrapper chartZoom">
+          {/* 제목 + 닫기버튼 */}
+          <DialogTitle className="tit">
+            <span></span>
+            <IconButton className="btnClose" onClick={() => setIsZoomOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="contents">
+            <div className="topState">
+              <div className="left">
+                <ChartRunning
+                  title="장비가동률"
+                  total={runningChart.total}
+                  running={runningChart.running}
+                />
+                <ChartState2 title="장비현황" data={opDistChart} />
+                <ChartOperation title="장비가동현황" data={status4Chart} />
+              </div>
+            </div>
+          </DialogContent>
+        </div>
+      </Dialog>
+
+      {/* card zoom dialog */}
+      <Dialog className="dialogCont full" open={isZoomOpen2} onClose={() => setIsZoomOpen2(false)}>
+        <div className="modalWrapper chartZoom">
+          {/* 제목 + 닫기버튼 */}
+          <DialogTitle className="tit">
+            <span></span>
+            <IconButton className="btnClose" onClick={() => setIsZoomOpen2(false)}>
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent className="contents">
+            <section className="topFilter">
+              <div className="left">
+                <PageTitle title="장비상세" icon={titleIcon} />
+              </div>
+              <div className="right">
+                <ColorChip2 />
+              </div>
+            </section>
+
+            {/* monitoring */}
+            <section className="monitoring">
+              <h2 className="ir">모니터링 화면</h2>
+              <div className="innerWrapper">
+                <List key={listRenderToken} listData={displayList} />
+              </div>
+            </section>
+          </DialogContent>
+        </div>
+      </Dialog>
+
     </>
   );
 }

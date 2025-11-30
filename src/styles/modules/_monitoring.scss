@@ -535,9 +535,9 @@
                 height: calc(100% + 0.8rem);
                 border-width: 0.3rem;
                 border-radius: 0.6rem;
-                left: -0.3rem;
-                top: -0.3rem;
-                animation: blinkShutdown 0.5s infinite alternate; // 🔸 깜빡임 추가
+                left: -0.4rem;
+                top: -0.4rem;
+                animation: blinkShutdown 0.5s infinite alternate;
                 pointer-events: none;
               }
             }

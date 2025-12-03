@@ -2,30 +2,38 @@
 
 import { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import type { PowerUnit } from '@/utils/powerUnit';
 
 interface ChartProps {
   title: string;
   data: { name: string; charge: number; discharge: number }[];
+  unit?: PowerUnit; // 'W' | 'kW' | 'MW'
 }
 
-export default function ChartMonth({ title, data }: ChartProps) {
+export default function ChartMonth({ title, data, unit }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
+    const displayUnit: PowerUnit = unit ?? 'W';
 
     const option: echarts.EChartsOption = {
+      animation: false,
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
         textStyle: { fontSize: 10 }, // 🔹 UI/UX: 툴팁 폰트 크기
         formatter: (params: any) => {
-          let result = `<strong style="color:#000;font-size:1.1rem;font-weight:500">${params[0].name}월</strong><br/>`;
-          params.forEach((item: any) => {
-            result += `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:8px;height:8px;line-height:8px;background-color:${item.color}"></span>
-              ${item.seriesName}: ${item.value}대<br/>`;
+          const list = Array.isArray(params) ? params : [params];
+
+          let result = `<strong style="color:#000;font-size:1.1rem;font-weight:500">${list[0]?.name ?? ''}월</strong><br/>`;
+          list.forEach((item: any) => {
+            result += `
+              <span style="display:inline-block;margin-right:4px;border-radius:10px;width:8px;height:8px;line-height:8px;background-color:${item.color}"></span>
+              ${item.seriesName}: ${item.value} ${displayUnit}<br/>
+            `;
           });
           return result;
         },
@@ -39,32 +47,32 @@ export default function ChartMonth({ title, data }: ChartProps) {
       },
       xAxis: {
         type: 'category',
-        data: data.map(d => d.name),
+        data: data.map((d) => d.name),
         axisTick: { alignWithLabel: true },
       },
       yAxis: {
         type: 'value',
-        name: '(대)',
+        name: `(${displayUnit})`, // 🔹 단위 표시
       },
       series: [
         {
           name: '충전',
           type: 'bar',
           barWidth: '35%',
-          data: data.map(d => d.charge),
+          data: data.map((d) => d.charge),
           itemStyle: { color: '#5B9BD5' },
         },
         {
           name: '방전',
           type: 'bar',
           barWidth: '35%',
-          data: data.map(d => d.discharge),
+          data: data.map((d) => d.discharge),
           itemStyle: { color: '#ED7D31' },
         },
       ],
     };
 
-    chart.setOption(option);
+    chart.setOption(option, true);
 
     const handleResize = () => chart.resize();
     window.addEventListener('resize', handleResize);
@@ -73,11 +81,14 @@ export default function ChartMonth({ title, data }: ChartProps) {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [data]);
+  }, [data, unit]); // 🔹 unit 변경 시에도 다시 렌더
 
   return (
     <div className="chartCont">
-      <h3 className="tit">{title}</h3>
+      <h3 className="tit">
+        {title}
+        {unit && <span style={{ marginLeft: 4, fontSize: '0.8rem' }}>({unit})</span>}
+      </h3>
       {/* 🔹 UI/UX: 높이 10.8rem */}
       <div
         className="chartWrap"

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
+import { PowerUnit, detectPowerUnit, scaleByUnit } from '@/utils/powerUnit';
 
 // ===============================
 // 타입 정의
@@ -11,6 +12,7 @@ export type MonitoringItem = {
   title: string;
   check: boolean;
   schedule: string;
+  testName?: string;
   memo: boolean;
   memoText: string;
   operation: string;      // charge / discharge / rest ...
@@ -29,9 +31,12 @@ export type MonitoringItem = {
   cycles: number;
   activeCycles: number;
   time: string;
-  x?: number;
-  y?: number;
-  eqpid?: string;
+  x: number;
+  y: number;
+  // 🔹 Measure.CycleCount 대신 Step 기반 표시
+  stepNo?: number;       // ← Info.StepNo
+  totalSteps?: number;   // ← Info.TotalStepCount
+  eqpid: string;
   channelIndex?: number;
   chamberIndex?: number;
   shutdown?: boolean;
@@ -40,11 +45,110 @@ export type MonitoringItem = {
   // 🔹 알람 존재 여부(백엔드에서 내려주면 사용)
   alarmCount?: number;
   hasAlarms?: boolean;
+  cycleCount?: number;
 };
 
 // 🔹 PACK UI용 모드 (CELL과 동일 컨셉)
 type ChannelMode = 'run' | 'stop' | 'alarm' | 'complete' | 'ready' | 'idle';
 type UiOperation = 'available' | 'ongoing' | 'stop' | 'completion' | 'Power sharing';
+
+type ResetMode = 'clear-blink' | 'complete-to-available';
+
+// 🔹 장비(그룹) 키: eqpid + chamberIndex
+const groupKeyOf = (eqpid: string, chamberIndex: number) =>
+  `${eqpid}__${chamberIndex || 1}`;
+
+
+// ✅ 채널 신선도(freshness) 계산: time → id 순으로 사용
+function getFreshnessScore(ch: MonitoringItem): number {
+  // 1) time 문자열 먼저 시도
+  if (ch.time) {
+    const ts = Date.parse(ch.time);
+    if (!Number.isNaN(ts)) {
+      return ts; // ms since epoch
+    }
+  }
+
+  // 2) time 파싱 실패 시 id 사용 (id 가 클수록 최근이라고 가정)
+  if (typeof ch.id === 'number' && Number.isFinite(ch.id)) {
+    return ch.id;
+  }
+
+  // 3) 둘 다 없으면 가장 오래된 것으로 간주
+  return 0;
+}
+
+// ✅ 같은 (x,y) 좌표에 여러 PACK 카드가 오면 "신선도가 더 높은 것"만 남기기
+function normalizeByCoordinate(list: MonitoringItem[]): MonitoringItem[] {
+  console.log('[PACK] normalizeByCoordinate IN', list.length);
+
+  const result: MonitoringItem[] = [];
+  const coordIndex = new Map<string, number>();
+
+  for (const ch of list) {
+    const xRaw = (ch as any).x;
+    const yRaw = (ch as any).y;
+    const xNum = Number(xRaw);
+    const yNum = Number(yRaw);
+
+    // 🔍 1) 들어오는 원본 타입/값 확인
+    console.log(
+      '[PACK] ch eqpid=', ch.eqpid,
+      ' chamberIndex=', ch.chamberIndex,
+      ' xRaw=', xRaw,
+      ' yRaw=', yRaw,
+      ' xNum=', xNum,
+      ' yNum=', yNum,
+      ' time=', ch.time,
+      ' id=', ch.id,
+    );
+
+    // 좌표가 없거나 0 이하이면 좌표 중복 체크 없이 그냥 추가
+    if (!Number.isFinite(xNum) || !Number.isFinite(yNum) || xNum <= 0 || yNum <= 0) {
+      console.log('[PACK]  → 좌표 없음/유효하지 않음 → 그냥 추가');
+      result.push(ch);
+      continue;
+    }
+
+    const key = `${xNum}_${yNum}`;
+    const existingIdx = coordIndex.get(key);
+
+    if (existingIdx !== undefined) {
+      const prev = result[existingIdx];
+      const prevScore = getFreshnessScore(prev);
+      const currScore = getFreshnessScore(ch);
+
+      console.log(
+        '[PACK]  → 좌표 중복 발견 key=',
+        key,
+        ' 기존=', prev.eqpid, '/', prev.chamberIndex,
+        ' (score=', prevScore, ')',
+        ' 새=', ch.eqpid, '/', ch.chamberIndex,
+        ' (score=', currScore, ')',
+      );
+
+      // ✅ 신선도 높은 쪽만 남기기 (동점이면 새 데이터 우선)
+      if (currScore >= prevScore) {
+        console.log('[PACK]     → 새 데이터가 더 최신 → 덮어쓰기');
+        result[existingIdx] = ch;
+      } else {
+        console.log('[PACK]     → 기존 데이터가 더 최신 → 무시');
+      }
+    } else {
+      console.log('[PACK]  → 좌표 최초 key=', key, ' 인덱스=', result.length);
+      coordIndex.set(key, result.length);
+      result.push(ch);
+    }
+  }
+
+  console.log(
+    '[PACK] normalizeByCoordinate OUT',
+    result.length,
+    result.map((c) => `${c.eqpid}/${c.chamberIndex}@${c.x}_${c.y} (time=${c.time}, id=${c.id})`),
+  );
+  return result;
+}
+
 
 // ===============================
 // 통신 도구
@@ -86,22 +190,90 @@ import { Dialog, DialogTitle, DialogContent, IconButton, Button } from '@mui/mat
 import CloseIcon from '@mui/icons-material/Close';
 
 // ===============================
-// 상태 유틸: PACK 채널 → 모드
+// 상태 유틸: PACK 채널 → 모드 (CELL 과 동일 구조)
 // ===============================
-function normalizeEn(s?: string | null): string {
+
+// step 문자열에서 "(end ok)" 같은 raw step 추출
+function extractRawStatusFromStep(step?: string | null): string {
+  if (!step) return '';
+  const open = step.indexOf('(');
+  const close = step.lastIndexOf(')');
+  if (open < 0 || close < 0 || close <= open) return '';
+  return step.slice(open + 1, close).trim();
+}
+
+// 🔹 Status 매핑 테이블 (소문자 기준) – CELL 과 동일
+const RUN_STATUS_LIST = [
+  'charge',
+  'discharge',
+  'standing',
+  'working simulation',
+  'pulse',
+  'dcir',
+  'starting',
+  'insulate',
+  'channel linkage',
+  'starting insulation voltage',
+  'ending insulation voltage',
+  'power sharing',
+];
+
+const STOP_STATUS_LIST = [
+  'pause',
+  'appoint time pause',
+  'appoint step pause',
+  'appoint loop pause',
+  'appoint step loop pause',
+  'special pause',
+];
+
+const ALARM_STATUS_LIST = [
+  'device alarm',
+  'comm error',
+  'no connected battery',
+  'disable',
+  'extern comm error',
+];
+
+const COMPLETE_STEP_LIST = ['end ok', 'end ng', 'user termination'];
+
+function normalizeStatusName(s?: string | null): string {
   if (!s) return '';
   return s.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function getPackMode(i: MonitoringItem): ChannelMode {
-  const s = normalizeEn(i.status);
-  const label = i.statusLabel?.trim();
+// ✅ PACK 채널 모드 – CELL 의 getChannelMode 와 동일한 패턴
+function getPackMode(ch: MonitoringItem): ChannelMode {
+  const rawStep = normalizeStatusName(extractRawStatusFromStep(ch.step));
+  const rawStatus = normalizeStatusName(ch.rawStatus);
+
+  // 1) step 기준 완료
+  if (rawStep && COMPLETE_STEP_LIST.includes(rawStep)) {
+    return 'complete';
+  }
+
+  // 2) rawStatus 기준 완료 (End OK / End NG / User termination)
+  if (rawStatus && COMPLETE_STEP_LIST.includes(rawStatus)) {
+    return 'complete';
+  }
+
+  // 3) Info.Status(rawStatus) 기반 run/stop/alarm/ready
+  if (rawStatus) {
+    if (RUN_STATUS_LIST.includes(rawStatus)) return 'run';
+    if (STOP_STATUS_LIST.includes(rawStatus)) return 'stop';
+    if (ALARM_STATUS_LIST.includes(rawStatus)) return 'alarm';
+    if (rawStatus === 'ready') return 'ready';
+  }
+
+  // 4) fallback – status / statusLabel
+  const s = normalizeStatusName(ch.status);
+  const label = ch.statusLabel?.trim();
 
   if (s === 'alarm' || label === '알람') return 'alarm';
   if (s === 'pause' || label === '일시정지') return 'stop';
   if (s === 'run' || s === 'ongoing' || label === '진행중') return 'run';
 
-  if (label?.includes('완료')) return 'complete';
+  if (label?.includes('완료') || s === 'complete') return 'complete';
 
   if (s === 'rest' || label === '대기') return 'ready';
 
@@ -187,6 +359,10 @@ export default function DashboardPack() {
   const [listRenderToken, setListRenderToken] = useState(0);
   const hasForcedListRenderRef = useRef(false);
 
+  const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>(
+    {},
+  );
+
   // ===============================
   // 1) 장비 목록 로딩 (채널 단위)
   // ===============================
@@ -201,56 +377,114 @@ export default function DashboardPack() {
   const loading = !listData && !error;
 
   // ===============================
-  // 6) 전력량 API 연동 (오늘 / 월) – 소수 1자리
-  //    ⛔ 폴링 제거, SSE에서 mutate 호출
+  // 6) 전력량 API 연동 (오늘 / 월)
   // ===============================
   const { data: todayPower, mutate: mutateToday } = useSWR(
     TODAY_POWER_API,
-    fetcher,
+    async (url: string) => {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
     {
       refreshInterval: 0,
       revalidateOnFocus: false,
     },
   );
 
+  // 월별 전력량은 페이지 진입 시 1회만 호출
   const { data: monthPower, mutate: mutateMonth } = useSWR(
     MONTH_POWER_API,
-    fetcher,
+    async (url: string) => {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
     {
       refreshInterval: 0,
       revalidateOnFocus: false,
     },
   );
 
-  const todayChart = useMemo(() => {
-    if (!todayPower) {
-      return [
-        { name: '방전', value: 0 },
-        { name: '충전', value: 0 },
-      ];
-    }
+  // 🔥 오늘/월 전력량 → W/kW/MW 단위 스케일링
+  const {
+    todayChart,
+    monthChart,
+    todayUnit,
+    monthUnit,
+  } = useMemo(() => {
+    const rawTodayDischarge = Math.abs(todayPower?.discharge ?? 0);
+    const rawTodayCharge = todayPower?.charge ?? 0;
 
-    return [
+    const monthIsArray = Array.isArray(monthPower);
+    const rawMonthChargeList = monthIsArray
+      ? (monthPower as any[]).map((row) => row.charge ?? 0)
+      : [];
+    const rawMonthDischargeList = monthIsArray
+      ? (monthPower as any[]).map((row) => Math.abs(row.discharge ?? 0))
+      : [];
+
+    // 오늘 단위 결정
+    const todayValues = [rawTodayDischarge, rawTodayCharge];
+    const todayUnit: PowerUnit = detectPowerUnit(todayValues);
+
+    const todayChart = [
       {
         name: '방전',
-        value: Number(Math.abs(todayPower.discharge ?? 0).toFixed(1)),
+        value: scaleByUnit(rawTodayDischarge, todayUnit),
       },
       {
         name: '충전',
-        value: Number((todayPower.charge ?? 0).toFixed(1)),
+        value: scaleByUnit(rawTodayCharge, todayUnit),
       },
     ];
-  }, [todayPower]);
 
-  const monthChart = useMemo(() => {
-    if (!monthPower || !Array.isArray(monthPower)) return [];
+    // 월 단위 결정
+    const monthValues = [...rawMonthChargeList, ...rawMonthDischargeList];
+    const monthUnit: PowerUnit = detectPowerUnit(
+      monthValues.length ? monthValues : [0],
+    );
 
-    return monthPower.map((row: any) => ({
-      name: row.inputdate ?? row.month ?? '-', // 백엔드 필드명에 맞게 조정
-      charge: Number((row.charge ?? 0).toFixed(1)),
-      discharge: Number(Math.abs(row.discharge ?? 0).toFixed(1)),
-    }));
-  }, [monthPower]);
+    const monthChart = monthIsArray
+      ? (monthPower as any[]).map((row, idx) => ({
+        name: row.inputdate ?? row.month ?? '-', // 백엔드 필드명에 맞게 조정
+        charge: scaleByUnit(rawMonthChargeList[idx], monthUnit),
+        discharge: scaleByUnit(rawMonthDischargeList[idx], monthUnit),
+      }))
+      : [];
+
+    return { todayChart, monthChart, todayUnit, monthUnit };
+  }, [todayPower, monthPower]);
+
+  // ⏰ 월별 전력량: 매일 0시 10분 이후 최초 1번만 자동 갱신
+  const lastMonthRefreshRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const timer = setInterval(() => {
+      const now = new Date();
+
+      // 로컬 날짜 yyyy-mm-dd
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const todayStr = `${y}-${m}-${d}`;
+
+      // 0시 10분 이후 & 아직 오늘은 한 번도 새로고침 안 했을 때
+      if (
+        now.getHours() === 0 &&
+        now.getMinutes() >= 10 &&
+        lastMonthRefreshRef.current !== todayStr
+      ) {
+        console.info('[PACK] auto month power refresh at 00:10', todayStr);
+        mutateMonth();                    // ✅ 월별 전력량 다시 가져오기
+        lastMonthRefreshRef.current = todayStr;
+      }
+    }, 60_000); // 1분마다 체크
+
+    return () => clearInterval(timer);
+  }, [mutateMonth]);
 
   // ===============================
   // 2) SSE: 갱신 트리거 (PACK은 SSE 올 때만 재조회)
@@ -263,21 +497,39 @@ export default function DashboardPack() {
     es.onopen = () => console.info('[PACK SSE] connected:', SSE_URL);
 
     es.onmessage = (ev) => {
-      // PACK용 Delta 이벤트일 때만 전체 갱신
+      const dataText = ev.data;
+      if (!dataText) return;
+
       try {
-        const data = JSON.parse(ev.data);
+        const payload = JSON.parse(dataText);
+        console.debug('[PACK SSE] payload:', payload);
 
         // IngestService 쪽 포맷 가정:
-        // { kind: "MONITORING_DELTA", type: "PACK" | "CELL", ... }
-        if (data?.kind === 'MONITORING_DELTA' && data?.type === 'PACK') {
+        // { kind: "MONITORING_DELTA", type: "PACK" | "CELL", items: [...] }
+        if (payload?.kind === 'MONITORING_DELTA' && payload?.type === 'PACK') {
           mutate();
-          mutateToday();
-          mutateMonth();
+          mutateToday();   // ✅ 오늘 전력량만 갱신
+          return;
+        }
+
+        // 혹시 다른 JSON 구조이지만 PACK 관련이면 전체 재조회
+        const typeField =
+          typeof payload.Type === 'string'
+            ? payload.Type.toUpperCase()
+            : typeof payload.type === 'string'
+              ? payload.type.toUpperCase()
+              : null;
+
+        if (!typeField || typeField === 'PACK') {
+          console.debug('[PACK SSE] unsupported JSON → mutate() fallback');
+          mutate();
+          mutateToday();   // ✅ today만
         }
       } catch (e) {
-        // JSON 아닌 이벤트면 최소 장비 목록만 갱신
+        // JSON 파싱 안 되는 단순 문자열/기타 이벤트 → fallback
         console.debug('[PACK SSE] non-JSON event, fallback mutate()', e);
         mutate();
+        mutateToday();     // ✅ today만
       }
     };
 
@@ -286,17 +538,21 @@ export default function DashboardPack() {
     };
 
     return () => es.close();
-  }, [mutate, mutateToday, mutateMonth]);
+  }, [mutate, mutateToday]);
 
   // ===============================
   // 3) PACK 채널 → 장비 그룹핑 (eqpid + chamberIndex)
+  //      🔥 여기서 좌표 중복 정규화(normalizeByCoordinate) 적용
   // ===============================
   const equipGroups: EquipGroup[] = useMemo(() => {
     if (!listData || !listData.length) return [];
 
+    // ✅ 좌표 기준으로 "마지막 데이터만" 남기기
+    const src = normalizeByCoordinate(listData);
+
     const map = new Map<string, EquipGroup>();
 
-    for (const ch of listData) {
+    for (const ch of src) {
       const eqpid = (ch.eqpid || ch.title || '').trim();
       if (!eqpid) continue;
 
@@ -362,6 +618,23 @@ export default function DashboardPack() {
       // ✅ 셀과 동일한 그룹 상태/깜빡임 계산 재사용
       const { uiOperation, uiShutdown } = calcGroupState(g.channels);
 
+      // ✅ RESET 상태 적용 (CELL 과 동일 패턴)
+      const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
+      const resetMode = resetTargets[gKey];
+
+      let finalOperation = uiOperation;
+      let finalShutdown = uiShutdown;
+
+      // 🔸 깜빡이는 장비들: 색은 그대로, 깜빡임만 제거
+      if (resetMode === 'clear-blink' && finalShutdown) {
+        finalShutdown = false;
+      }
+
+      // 🔸 완료 장비: 리셋 시 회색(available)으로 변경
+      if (resetMode === 'complete-to-available' && finalOperation === 'completion') {
+        finalOperation = 'available';
+      }
+
       // 🔴 “Power sharing”은 원본 상태(rawStatus / operation) 기준으로 판단
       const rawOperation = (rep.rawStatus ?? rep.operation ?? '').trim();
       const isPowerSharing = rawOperation === 'Power sharing';
@@ -373,16 +646,17 @@ export default function DashboardPack() {
         eqpid: g.eqpid,
         chamberIndex: g.chamberIndex,
         check: match,
-        operation: uiOperation,  // 'available' | 'ongoing' | 'stop' | 'completion'
-        shutdown: uiShutdown,    // 🔥 List/CSS에서 깜빡임 기준
-        powerOn: isPowerSharing, // 🔥 Power sharing 인 경우만 파워 빨간색
+        // ⬇️ 여기부터 RESET 적용 결과 사용
+        operation: finalOperation,    // 'completion' → 'available' 로 변환될 수 있음
+        shutdown: finalShutdown,
+        powerOn: isPowerSharing,
       };
 
       result.push(item);
     }
 
     return result;
-  }, [equipGroups, searchKeywords]);
+  }, [equipGroups, searchKeywords, resetTargets]);
 
   // ===============================
   // 4-1) 최초 진입 시 List 한 번 강제 리렌더
@@ -421,7 +695,7 @@ export default function DashboardPack() {
     const totalEquip = equipGroups.length;
     let runningEquip = 0;
 
-    // ✅ 셀과 동일하게, 그룹 상태를 기반으로 장비 가동 여부 판단
+    // ✅ 장비 가동률: 장비(EQPID+CHAMBERINDEX) 단위
     for (const g of equipGroups) {
       const { uiOperation } = calcGroupState(g.channels);
       if (uiOperation === 'ongoing') {
@@ -429,7 +703,7 @@ export default function DashboardPack() {
       }
     }
 
-    // 운전모드 분포는 채널 기준 (기존 유지)
+    // ✅ 운전모드 분포(opDistChart)는 계속 채널 단위 유지 (charge/discharge/...)
     const allChannels = equipGroups.flatMap((g) => g.channels);
 
     const opBuckets: Record<string, number> = {
@@ -464,6 +738,7 @@ export default function DashboardPack() {
           break;
         default:
           opBuckets.Rest++;
+          break;
       }
     }
 
@@ -472,21 +747,30 @@ export default function DashboardPack() {
       value,
     }));
 
-    // 상태 분포도 채널 기준 (기존 유지)
-    const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> =
-      {
-        대기: 0,
-        진행중: 0,
-        일시정지: 0,
-        알람: 0,
-      };
+    // ✅ 상태 분포(status4Chart)는 "장비 단위"로 다시 계산
+    const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
+      대기: 0,
+      진행중: 0,
+      일시정지: 0,
+      알람: 0,
+    };
 
-    for (const ch of allChannels) {
-      const label = ch.statusLabel;
-      if (label === '대기') statusBuckets['대기']++;
-      else if (label === '일시정지') statusBuckets['일시정지']++;
-      else if (label === '알람') statusBuckets['알람']++;
-      else statusBuckets['진행중']++;
+    for (const g of equipGroups) {
+      const { uiOperation, groupHasAlarms } = calcGroupState(g.channels);
+
+      if (groupHasAlarms) {
+        // 🔴 그룹 안에 알람 있는 장비 → 알람 1대
+        statusBuckets['알람'] += 1;
+      } else if (uiOperation === 'stop') {
+        // ⏸ 정지
+        statusBuckets['일시정지'] += 1;
+      } else if (uiOperation === 'ongoing') {
+        // 🟢 진행중
+        statusBuckets['진행중'] += 1;
+      } else {
+        // 🔵 completion / available 등은 “대기”로 묶음
+        statusBuckets['대기'] += 1;
+      }
     }
 
     const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({
@@ -501,13 +785,11 @@ export default function DashboardPack() {
     };
   }, [equipGroups]);
 
-
   // chart zoom
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   // card zoom
   const [isZoomOpen2, setIsZoomOpen2] = useState(false);
-
 
   // ===============================
   // 7) 렌더링
@@ -534,12 +816,12 @@ export default function DashboardPack() {
         </div>
 
         <div className="right">
-          <ChartToday title="오늘 전력량" data={todayChart} />
+          <ChartToday title="오늘 전력량" data={todayChart} unit={todayUnit} />
           <ul className="legend">
             <li className="charge">충전</li>
             <li>방전</li>
           </ul>
-          <ChartMonth title="월별 전력량" data={monthChart} />
+          <ChartMonth title="월별 전력량" data={monthChart} unit={monthUnit} />
         </div>
       </section>
 
@@ -552,7 +834,48 @@ export default function DashboardPack() {
           <SearchArea onSearchChange={setSearchKeywords} />
         </div>
         <div className="right">
-          <ColorChip />
+          <ColorChip
+            onReset={() => {
+              const next: Record<string, ResetMode> = {};
+
+              for (const g of equipGroups) {
+                const modes = g.channels.map(getPackMode);
+                let runCnt = 0;
+                let alarmCnt = 0;
+                let stopCnt = 0;
+                let completeCnt = 0;
+
+                for (const m of modes) {
+                  if (m === 'run') runCnt++;
+                  else if (m === 'alarm') alarmCnt++;
+                  else if (m === 'stop') stopCnt++;
+                  else if (m === 'complete') completeCnt++;
+                }
+
+                const totalChannels = g.channels.length || 1;
+                const anyAlarm = alarmCnt > 0;
+                const anyRun = runCnt > 0;
+                const allComplete = completeCnt === totalChannels;
+
+                // 🔹 "알람이 아닌데 깜빡이는" 장비도 필요하면 clear-blink
+                const blinkNonAlarm =
+                  !anyAlarm && anyRun && completeCnt > 0 && !allComplete;
+
+                const k = groupKeyOf(g.eqpid, g.chamberIndex);
+
+                if (allComplete) {
+                  // 파란 완료 → 회색 available
+                  next[k] = 'complete-to-available';
+                } else if (blinkNonAlarm) {
+                  // 진행+완료 섞여서 깜빡이는 경우 → 깜빡임만 제거
+                  next[k] = 'clear-blink';
+                }
+                // 🔴 anyAlarm 인 장비는 reset 대상 아님
+              }
+
+              setResetTargets(next);
+            }}
+          />
         </div>
       </section>
 
@@ -565,9 +888,12 @@ export default function DashboardPack() {
         </div>
       </section>
 
-
       {/* chart zoom dialog */}
-      <Dialog className="dialogCont wide" open={isZoomOpen} onClose={() => setIsZoomOpen(false)}>
+      <Dialog
+        className="dialogCont wide"
+        open={isZoomOpen}
+        onClose={() => setIsZoomOpen(false)}
+      >
         <div className="modalWrapper chartZoom">
           {/* 제목 + 닫기버튼 */}
           <DialogTitle className="tit">
@@ -594,7 +920,11 @@ export default function DashboardPack() {
       </Dialog>
 
       {/* card zoom dialog */}
-      <Dialog className="dialogCont full" open={isZoomOpen2} onClose={() => setIsZoomOpen2(false)}>
+      <Dialog
+        className="dialogCont full"
+        open={isZoomOpen2}
+        onClose={() => setIsZoomOpen2(false)}
+      >
         <div className="modalWrapper chartZoom">
           {/* 제목 + 닫기버튼 */}
           <DialogTitle className="tit">
@@ -624,7 +954,6 @@ export default function DashboardPack() {
           </DialogContent>
         </div>
       </Dialog>
-
     </>
   );
 }

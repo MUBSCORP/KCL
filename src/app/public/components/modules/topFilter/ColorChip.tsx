@@ -13,7 +13,12 @@ import chip_07 from '@/assets/images/icon/chip_07.png';
 import chip_08 from '@/assets/images/icon/chip_08.png';
 import chip_09 from '@/assets/images/icon/chip_09.png';
 
-export default function ColorChip() {
+// ✅ 여기 추가
+export interface ColorChipProps {
+  onReset?: () => void;  // PACK/CELL 에서 리셋 버튼 눌렀을 때 실행할 콜백
+}
+
+const ColorChip: React.FC<ColorChipProps> = ({ onReset }) => {
   return (
     <>
       {/* 점등/점멸 상태 */}
@@ -57,10 +62,21 @@ export default function ColorChip() {
       </ul>
 
       {/* RESET 버튼 – 지금은 UI만, 필요하면 onClick 추가해서 필터 초기화 등 연결 */}
-      <Button className="btnReset">
+      <Button
+        type="button"
+        className="btnReset"   // 원래 쓰던 클래스 그대로
+        onClick={() => {
+          // 기존 내부 로직이 있으면 그대로 두고,
+          // 마지막에 onReset 호출
+          // ex) local state 초기화 등...
+
+          onReset?.();  // ✅ 부모(DashboardPack/CELL)에게 "리셋 눌렸음" 알림
+        }}
+      >
         <span>RESET</span>
         <Image src={BtnReset} alt="초기화" width={16} height={16} />
       </Button>
     </>
   );
 }
+export default ColorChip;

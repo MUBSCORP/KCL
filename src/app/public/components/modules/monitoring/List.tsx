@@ -24,6 +24,7 @@ interface ListItem {
   title: string;
   check: boolean;
   schedule: string;
+  testName?: string;
   memo: boolean;
   memoText: string;
   operation: string;
@@ -49,6 +50,13 @@ interface ListItem {
   activeCycles: number;
   time: string;
 
+  // 🔹 Measure.CycleCount 추가 (백엔드 Integer cycleCount)
+  cycleCount?: number;
+
+  // 🔹 Step 기반(Info.StepNo / TotalStepCount) 표시용
+  stepNo?: number;        // Info.StepNo
+  totalSteps?: number;    // Info.TotalStepCount
+
   // 퍼블 추가 필드(있으면 사용)
   memoTotal?: string;
 
@@ -65,16 +73,24 @@ interface ListProps {
   listData: ListItem[];
 }
 
+type StatusToken = 'rest' | 'ongoing' | 'stop' | 'alarm' | 'completion';
+
 /**
  * CSS가 기대하는 상태 토큰으로 매핑
- *  - li[data-status="rest|ongoing|stop|alarm"]
- *  - .status[data-status="rest|ongoing|stop|alarm"]
+ *  - li[data-status="rest|ongoing|stop|alarm|completion"]
+ *  - .status[data-status="rest|ongoing|stop|alarm|completion"]
  */
 const mapStatusToCss = (
   status?: string,
   statusLabel?: string,
-): 'rest' | 'ongoing' | 'stop' | 'alarm' => {
+  operation?: string,          // 🔹 uiOperation 도 같이 참고
+): StatusToken => {
+  // 0) uiOperation 기반 우선 (PACK/CELL 공통)
+  const op = (operation ?? '').toLowerCase();
+  if (op === 'completion' || op === 'complete') return 'completion';
+
   // 1) 한글 라벨 우선
+  if (statusLabel === '완료') return 'completion';
   if (statusLabel === '대기') return 'rest';
   if (statusLabel === '진행중') return 'ongoing';
   if (statusLabel === '일시정지') return 'stop';
@@ -82,6 +98,7 @@ const mapStatusToCss = (
 
   // 2) 원시 status 값으로 보정
   const s = (status ?? '').toLowerCase();
+  if (s === 'complete' || s === 'completion') return 'completion';
   if (s === 'rest') return 'rest';
   if (s === 'run' || s === 'ongoing') return 'ongoing';
   if (s === 'pause' || s === 'stop') return 'stop';
@@ -90,6 +107,42 @@ const mapStatusToCss = (
   // 기본값: 대기
   return 'rest';
 };
+
+// 🔹 StepNo / TotalStepCount → 하단 동그라미 매핑
+function getCycleVisual(item: ListItem): { totalDots: number; activeDots: number } {
+  const total =
+    typeof item.totalSteps === 'number' && item.totalSteps > 0
+      ? item.totalSteps
+      : 0;
+  const step =
+    typeof item.stepNo === 'number' && item.stepNo >= 0
+      ? item.stepNo
+      : 0;
+
+  // ✅ 1순위: Step 정보가 있을 때
+  if (total > 0) {
+    const active = Math.max(0, Math.min(step, total)); // 0 ~ total
+    return {
+      totalDots: total,
+      activeDots: active,
+    };
+  }
+
+  // 🔁 2순위: step 정보 없으면 cycleCount 기준 fallback
+  if (typeof item.cycleCount === 'number' && item.cycleCount > 0) {
+    const totalDots = 5; // 디자인 기본 5개 고정
+    const idx0 = item.cycleCount - 1;
+    const activeDots = (idx0 % totalDots) + 1; // 1..5
+
+    return { totalDots, activeDots };
+  }
+
+  // 🔁 3순위: 그래도 없으면 기존 cycles/activeCycles 사용
+  return {
+    totalDots: item.cycles ?? 0,
+    activeDots: item.activeCycles ?? 0,
+  };
+}
 
 export default function List({ listData }: ListProps) {
   const [open, setOpen] = React.useState(false);
@@ -251,7 +304,7 @@ export default function List({ listData }: ListProps) {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/monitoring/memo?eqpid=${encodeURIComponent(
           ids.eqpid,
-        )}&channel=${ids.index}`,   // ✅ 여기
+        )}&channel=${ids.index}`,
         { method: 'DELETE', credentials: 'include' },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -280,13 +333,27 @@ export default function List({ listData }: ListProps) {
         {listData.map(raw => {
           const item = withOverride(raw);
 
+          // 🔹 StepNo / TotalStepCount 기반 하단 동그라미 계산
+          const { totalDots, activeDots } = getCycleVisual(item);
+
           const x = item.x ?? 1;
           const y = item.y ?? 1;
           const left = (x - 1) * liWidth;
           const top = (y - 1) * 320; // 한 줄 높이(디자인 기준)
 
-          // ✅ CSS가 인식할 상태 토큰
-          const statusToken = mapStatusToCss(item.status, item.statusLabel);
+          // ✅ 칩(상단 뱃지)용 상태 토큰
+          const chipStatus: StatusToken = mapStatusToCss(
+            item.status,
+            item.statusLabel,
+            item.operation,   // ← uiOperation('completion', 'ongoing', 'stop', ...)
+          );
+
+          // ✅ 카드 테두리/배경용 상태 토큰
+          // RESET 후 operation === 'available' 인 경우
+          //   - 칩: 여전히 completion (파랑)
+          //   - 카드: rest(회색 테두리/배경)
+          const frameStatus: StatusToken =
+            item.operation === 'available' ? 'rest' : chipStatus;
 
           return (
             <li
@@ -294,14 +361,14 @@ export default function List({ listData }: ListProps) {
               data-operation={item.operation}
               data-checked={item.check ? 'checked' : undefined}
               data-shutdown={item.shutdown ? 'shutdown' : undefined}
-              data-status={statusToken}
+              data-status={frameStatus}
               style={{ left: `${left}px`, top: `${top}px` }}
             >
               <div className="inner">
                 <div className="topArea">
                   {/* 제목 클릭 시 메모 모달 오픈 */}
                   <h3 className="tit" onClick={() => handleClickOpen(item)}>
-                    {item.title} - {item.chamberIndex}
+                    {item.title}-{item.chamberIndex}
                   </h3>
                   <div className="right">
                     {item.memo && (
@@ -317,7 +384,7 @@ export default function List({ listData }: ListProps) {
                     <Chip
                       label={item.statusLabel}
                       className="status"
-                      data-status={statusToken}
+                      data-status={chipStatus}
                     />
                   </div>
                 </div>
@@ -347,7 +414,7 @@ export default function List({ listData }: ListProps) {
                   </dl>
                   <dl>
                     <dt>사이클</dt>
-                    <dd>{item.cycle}</dd>
+                    <dd>{item.cycleCount}</dd>
                   </dl>
                   <dl>
                     <dt>RLY</dt>
@@ -374,11 +441,12 @@ export default function List({ listData }: ListProps) {
                 </div>
 
                 <div className="bottomArea">
-                  <ol className="cycle" data-cycle={item.cycles}>
-                    {[...Array(5)].map((_, idx) => (
+                  {/* 🔹 Step 기반 cycles 시각화 */}
+                  <ol className="cycle" data-cycle={totalDots}>
+                    {Array.from({ length: totalDots }).map((_, idx) => (
                       <li
                         key={idx}
-                        className={idx < item.activeCycles ? 'isActive' : ''}
+                        className={idx < activeDots ? 'isActive' : ''}
                       />
                     ))}
                   </ol>
@@ -416,10 +484,10 @@ export default function List({ listData }: ListProps) {
           <DialogContent className="contents">
             <dl>
               <dt>
-                <h5 className="tit">스케쥴명</h5>
+                <h5 className="tit">시험명</h5>
               </dt>
               <dd>
-                <p>{selectedMemo?.schedule}</p>
+                <p>{selectedMemo?.testName}</p>
               </dd>
             </dl>
 

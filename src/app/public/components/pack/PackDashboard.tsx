@@ -22,6 +22,7 @@ export type MonitoringItem = {
   current: string;
   power: string;
   step: string;
+  stepName?: string;
   cycle: string;
   rly: string;
   dgv?: string;
@@ -683,12 +684,14 @@ export default function DashboardPack() {
   // ===============================
   // 5) 상단 차트: 장비 가동률/상태 (장비=eqpid+chamberIndex 기준)
   // ===============================
-  const { runningChart, opDistChart, status4Chart } = useMemo(() => {
+  // 5) 상단 차트: 장비 가동률/상태 + 스텝 분포 (장비=eqpid+chamberIndex 기준)
+  const { runningChart, opDistChart, status4Chart, stepChart } = useMemo(() => {
     if (!equipGroups.length) {
       return {
         runningChart: { total: 0, running: 0 },
         opDistChart: [] as { name: string; value: number }[],
         status4Chart: [] as { name: string; value: number }[],
+        stepChart: [] as { name: string; value: number }[],
       };
     }
 
@@ -703,7 +706,7 @@ export default function DashboardPack() {
       }
     }
 
-    // ✅ 운전모드 분포(opDistChart)는 계속 채널 단위 유지 (charge/discharge/...)
+    // ✅ 운전모드 분포(opDistChart)는 계속 채널 단위 유지 (charge/discharge/rest...)
     const allChannels = equipGroups.flatMap((g) => g.channels);
 
     const opBuckets: Record<string, number> = {
@@ -747,7 +750,7 @@ export default function DashboardPack() {
       value,
     }));
 
-    // ✅ 상태 분포(status4Chart)는 "장비 단위"로 다시 계산
+    // ✅ 상태 분포(status4Chart)는 "장비 단위"로 계산
     const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
       대기: 0,
       진행중: 0,
@@ -759,16 +762,12 @@ export default function DashboardPack() {
       const { uiOperation, groupHasAlarms } = calcGroupState(g.channels);
 
       if (groupHasAlarms) {
-        // 🔴 그룹 안에 알람 있는 장비 → 알람 1대
         statusBuckets['알람'] += 1;
       } else if (uiOperation === 'stop') {
-        // ⏸ 정지
         statusBuckets['일시정지'] += 1;
       } else if (uiOperation === 'ongoing') {
-        // 🟢 진행중
         statusBuckets['진행중'] += 1;
       } else {
-        // 🔵 completion / available 등은 “대기”로 묶음
         statusBuckets['대기'] += 1;
       }
     }
@@ -778,12 +777,39 @@ export default function DashboardPack() {
       value,
     }));
 
+    // ✅ NEW: stepName 분포 계산 후 상위 6개만 추출
+    const stepBuckets: Record<string, number> = {};
+
+    for (const ch of allChannels) {
+      const raw = (ch.stepName ?? ch.step ?? '').trim();
+      if (!raw) continue;
+
+      // 필요하면 여기서 표시용으로 정규화 가능 (예: 괄호 제거 등)
+      const name = raw;
+
+      stepBuckets[name] = (stepBuckets[name] ?? 0) + 1;
+    }
+
+    // 건수 기준 내림차순 정렬
+    const sortedSteps = Object.entries(stepBuckets).sort(
+      (a, b) => b[1] - a[1],
+    );
+
+    // 상위 6개만 차트에 사용
+    const TOP_N = 6;
+    const stepChart = sortedSteps.slice(0, TOP_N).map(([name, value]) => ({
+      name,
+      value,
+    }));
+
     return {
       runningChart: { total: totalEquip, running: runningEquip },
       opDistChart,
       status4Chart,
+      stepChart,
     };
   }, [equipGroups]);
+
 
   // chart zoom
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -804,7 +830,8 @@ export default function DashboardPack() {
             total={runningChart.total}
             running={runningChart.running}
           />
-          <ChartState title="장비현황" data={opDistChart} />
+          {/*<ChartState title="장비현황" data={opDistChart} />*/}
+          <ChartState title="장비현황" data={stepChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
           <Button className="btnZoom" onClick={() => setIsZoomOpen(true)}>
             확대보기
@@ -911,7 +938,7 @@ export default function DashboardPack() {
                   total={runningChart.total}
                   running={runningChart.running}
                 />
-                <ChartState2 title="장비현황" data={opDistChart} />
+                <ChartState2 title="장비현황" data={stepChart} />
                 <ChartOperation title="장비가동현황" data={status4Chart} />
               </div>
             </div>

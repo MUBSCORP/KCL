@@ -413,7 +413,7 @@ export default function List({ listData }: ListProps) {
                     <dd>{item.step}</dd>
                   </dl>
                   <dl>
-                    <dt>사이클</dt>
+                    <dt>토탈사이클</dt>
                     <dd>{item.cycleCount}</dd>
                   </dl>
                   <dl>

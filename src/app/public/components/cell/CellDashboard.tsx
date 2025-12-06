@@ -58,6 +58,8 @@ export type MonitoringItem = {
   current: string;
   power: string;
   step: string;
+  // 🔹 서버에서 내려주는 Step 이름 (TOP 6 집계용)
+  stepName?: string;
   cycle: string;
   rly: string;
   dgv?: string;
@@ -245,7 +247,7 @@ function getChannelMode(ch: MonitoringItem): ChannelMode {
   if (s === 'run') return 'run';
   if (s === 'pause') return 'stop';
   if (s === 'rest') return 'ready';
-
+  if (s === 'complete') return 'complete';
   return 'idle';
 }
 
@@ -253,6 +255,7 @@ function getChannelMode(ch: MonitoringItem): ChannelMode {
 function toMemoStatus(ch: MonitoringItem): MemoStatus {
   const mode = getChannelMode(ch);
 
+  // 🔁 완료도 대기(available) 쪽으로 합산
   if (mode === 'complete') return 'completion';
   if (mode === 'run') return 'ongoing';
   if (mode === 'stop' || mode === 'alarm') return 'stop';
@@ -592,8 +595,8 @@ export default function DashboardCell() {
     if (!effectiveData.length) return [];
 
     // ✅ PACK 처럼 좌표 기준 최신 데이터만 남기기
-    const src = normalizeByCoordinate(effectiveData);
-
+   // const src = normalizeByCoordinate(effectiveData);
+    const src = effectiveData;
     const map = new Map<string, EquipGroup>();
 
     for (const ch of src) {
@@ -733,6 +736,8 @@ export default function DashboardCell() {
       const totalChannels = group.channels.length || 1;
       const allComplete = completeCnt === totalChannels;
 
+
+
       const groupHasAlarms = group.channels.some((ch) => {
         if (typeof ch.alarmCount === 'number') {
           return ch.alarmCount > 0;
@@ -747,6 +752,10 @@ export default function DashboardCell() {
       let shutdown = false;
       let icon: ListItem['icon'] = 'stay';
       let operation: ListItem['operation'] = 'available';
+
+      console.log("status => totalChannels" + totalChannels);
+      console.log("status => allComplete" + allComplete);
+
 
       if (anyAlarm || anyStop) {
         operation = 'stop';
@@ -843,7 +852,7 @@ export default function DashboardCell() {
         temp2,
         ch1: runCnt,
         ch2: alarmCnt + stopCnt,
-        ch3: completeCnt,
+        ch3: completeCnt + idleCnt,
         memo: !!memoText.length,
         memoText,
         memoTotal,
@@ -862,6 +871,7 @@ export default function DashboardCell() {
     status4Chart,
     todayChart,
     monthChart,
+    stepChart,          // ✅ 추가
   } = useMemo(() => {
     // ---------------------------
     // (1) 장비 가동률 / 상태
@@ -869,6 +879,7 @@ export default function DashboardCell() {
     let runningChart = { total: 0, running: 0 };
     let opDistChart: { name: string; value: number }[] = [];
     let status4Chart: { name: string; value: number }[] = [];
+    let stepChart: { name: string; value: number }[] = [];   // ✅ 추가
 
     if (equipGroups.length) {
       const totalEquip = equipGroups.length;
@@ -888,6 +899,7 @@ export default function DashboardCell() {
 
       const allChannels = equipGroups.flatMap((g) => g.channels);
 
+      // 🔹 운전모드 분포
       const opBuckets: Record<string, number> = {
         Charge: 0,
         Discharge: 0,
@@ -934,6 +946,7 @@ export default function DashboardCell() {
         value,
       }));
 
+      // 🔹 상태 4분류 분포
       const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> =
         {
           대기: 0,
@@ -969,6 +982,28 @@ export default function DashboardCell() {
       }));
 
       runningChart = { total: totalEquip, running: runningEquip };
+
+      // 🔹 NEW: stepName 분포 → 상위 6개
+      const stepBuckets: Record<string, number> = {};
+
+      for (const ch of allChannels) {
+        // stepName 우선, 없으면 step 사용 (fallback)
+        const raw = (ch.stepName ?? ch.step ?? '').trim();
+        if (!raw) continue;
+
+        const name = raw; // 필요하면 여기서 포맷팅 가능
+        stepBuckets[name] = (stepBuckets[name] ?? 0) + 1;
+      }
+
+      const sortedSteps = Object.entries(stepBuckets).sort(
+        (a, b) => b[1] - a[1],
+      );
+
+      const TOP_N = 6;
+      stepChart = sortedSteps.slice(0, TOP_N).map(([name, value]) => ({
+        name,
+        value,
+      }));
     }
 
     // ---------------------------
@@ -1035,6 +1070,7 @@ export default function DashboardCell() {
         data: monthData,
         unit: monthUnit as PowerUnit,
       },
+      stepChart,   // ✅ 추가
     };
   }, [equipGroups, todayPower, monthPower]);
 
@@ -1074,7 +1110,7 @@ export default function DashboardCell() {
             total={runningChart.total}
             running={runningChart.running}
           />
-          <ChartState title="장비현황" data={opDistChart} />
+          <ChartState title="장비현황" data={stepChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
           <Button className="btnZoom" onClick={() => setIsZoomOpen(true)}>
             확대보기
@@ -1133,6 +1169,9 @@ export default function DashboardCell() {
                 const anyRun = runCnt > 0;
                 const totalChannels = g.channels.length || 1;
                 const allComplete = completeCnt === totalChannels;
+
+
+
 
                 const blinkNonAlarm =
                   !anyAlarm && anyRun && completeCnt > 0 && !allComplete;
@@ -1206,7 +1245,7 @@ export default function DashboardCell() {
                   total={runningChart.total}
                   running={runningChart.running}
                 />
-                <ChartState2 title="장비현황" data={opDistChart} />
+                <ChartState2 title="장비현황" data={stepChart} />
                 <ChartOperation title="장비가동현황" data={status4Chart} />
               </div>
             </div>

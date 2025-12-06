@@ -24,7 +24,7 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
         <div className={`tag ${selectedLog.processed ? 'fin' : 'info'}`} />
         <p className="msg" dangerouslySetInnerHTML={{ __html: selectedLog.message ?? '' }} />
         <p className="sol" dangerouslySetInnerHTML={{ __html: selectedLog.solution ?? '' }} />
-        {selectedLog?.time?.trim() && <p className="time">{selectedLog.time}</p>}
+        {/*{selectedLog?.time?.trim() && <p className="time">{selectedLog.time}</p>}*/}
         <dl>
           <dt>장비</dt>
           <dd className="co-blue">{selectedLog.equipment}</dd>

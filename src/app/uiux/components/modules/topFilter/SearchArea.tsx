@@ -21,6 +21,14 @@ export default function SearchArea() {
     { key: 0, label: '#1F-001B', delete: true },
     { key: 1, label: '#1F-001B', delete: true },
     { key: 2, label: '#1F-001B', delete: true },
+    { key: 3, label: '#1F-001B', delete: true },
+    { key: 4, label: '#1F-001B', delete: true },
+    { key: 5, label: '#1F-001B', delete: true },
+    { key: 6, label: '#1F-001B', delete: true },
+    { key: 7, label: '#1F-001B', delete: true },
+    { key: 8, label: '#1F-001B', delete: true },
+    { key: 9, label: '#1F-001B', delete: true },
+    { key: 10, label: '#1F-001B', delete: true },
   ]);
 
   const [searchText, setSearchText] = React.useState('');

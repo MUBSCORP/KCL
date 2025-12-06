@@ -2,14 +2,15 @@
 @use 'common/mixins' as *;
 
 .topFilter {
-  @include flexArea($align: center, $justify: space-between);
+  @include flexArea($align: center, $justify: space-between, $gap: 1rem);
   min-width: var(--min-width);
   padding: 1.5rem 3rem;
   border-bottom: 1px solid #ccc;
   background-color: #fff;
   margin-bottom: 1.2rem;
   > .left {
-    @include flexArea($align: center, $justify: flex-start, $gap: 3rem);
+    flex: 1;
+    @include flexArea($align: center, $justify: flex-start, $gap: 3rem, $width: calc(100% - 110rem));
     .compTit {
       @include flexArea($align: center, $gap: 0.6rem);
       font-size: 2.4rem;
@@ -21,7 +22,7 @@
       }
     }
     .searchArea {
-      @include flexArea($align: center, $justify: flex-start, $gap: 2rem);
+      @include flexArea($align: center, $justify: flex-start, $gap: 2rem, $width: calc(100% - 24rem));
       .schInput {
         @include flexArea($justify: flex-start);
         position: relative;
@@ -68,13 +69,26 @@
         }
       }
       .schResult {
-        @include flexArea($gap: 0.6rem);
+        @include flexArea($gap: 0.6rem, $justify: flex-start, $width: calc(100% - 26rem));
         dt {
           font-size: 1.4rem;
           white-space: nowrap;
         }
         dd {
-          @include flexArea($gap: 0.6rem, $wrap: wrap, $justify: flex-start);
+          @include flexArea($gap: 0.6rem, $justify: flex-start, $width: 100%);
+          overflow-x: auto;
+          scrollbar-width: thin; /* Firefox */
+          scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+          &::-webkit-scrollbar {
+            height: 2px; /* 가로 스크롤 높이 */
+          }
+          &::-webkit-scrollbar-track {
+            background: transparent; /* 트랙은 투명 */
+          }
+          &::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3); /* 얇고 투명한 오버레이 느낌 */
+            border-radius: 10px;
+          }
           .chip {
             @include flexArea($gap: 0.6rem);
             font-size: 1.4rem;

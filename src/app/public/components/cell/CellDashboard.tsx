@@ -480,109 +480,151 @@ export default function DashboardCell() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const es = new EventSource(SSE_URL);
-    es.onopen = () => console.info('[CELL SSE] connected:', SSE_URL);
+    let es: EventSource | null = null;
+    let retryTimer: number | null = null;
 
-    es.onmessage = (e) => {
-      const dataText = e.data;
-      if (!dataText) return;
-
-      const trimmed = dataText.trim();
-
-      // JSON 이 아닌 단순 문자열 이벤트(alarm-updated:CELL 등)
-      if (!isJsonString(trimmed)) {
-        console.debug('[CELL SSE] non-JSON message:', trimmed);
-
-        if (trimmed.endsWith(':CELL')) {
-          mutate();
-          mutateToday();   // ✅ 오늘 전력량만 갱신
-        }
-        return;
+    const connect = () => {
+      if (es) {
+        es.close();
+        es = null;
       }
 
-      try {
-        const payload = JSON.parse(trimmed);
-        console.debug('[CELL SSE] payload:', payload);
+      console.info('[CELL SSE] connecting:', SSE_URL);
+      es = new EventSource(SSE_URL);
 
-        // 1) 배열 형태 전체 리스트
-        if (Array.isArray(payload)) {
-          setItems(payload as MonitoringItem[]);
-          mutateToday();   // ✅ 여기서도 today만
+      es.onopen = () => {
+        console.info('[CELL SSE] connected:', SSE_URL);
+
+        // 🔥 서버 재시작 후 다시 붙었을 때
+        // - CELLS 전체 리스트 재조회
+        // - 오늘 전력량 재조회
+        mutate();
+        mutateToday();
+
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+      };
+
+      es.onmessage = (e) => {
+        const dataText = e.data;
+        if (!dataText) return;
+
+        const trimmed = dataText.trim();
+
+        // JSON 이 아닌 단순 문자열 이벤트(alarm-updated:CELL 등)
+        if (!isJsonString(trimmed)) {
+          console.debug('[CELL SSE] non-JSON message:', trimmed);
+
+          // 예: "alarm-updated:CELL" 형태면 CELL 관련으로 판단
+          if (trimmed.endsWith(':CELL')) {
+            mutate();
+            mutateToday();   // ✅ 오늘 전력량만 갱신
+          }
           return;
         }
 
-        // 2) DELTA 래퍼 형태: { kind, type, items: [...] }
-        if (payload && Array.isArray(payload.items)) {
-          const typeFieldRaw =
-            typeof payload.type === 'string'
-              ? payload.type
-              : typeof payload.Type === 'string'
-                ? payload.Type
-                : null;
-          const msgType = typeFieldRaw ? typeFieldRaw.toUpperCase() : null;
+        try {
+          const payload = JSON.parse(trimmed);
+          console.debug('[CELL SSE] payload:', payload);
 
-          if (msgType && msgType !== 'CELL') {
-            console.debug('[CELL SSE] ignore delta for type:', msgType);
+          // 1) 배열 형태 전체 리스트
+          if (Array.isArray(payload)) {
+            setItems(payload as MonitoringItem[]);
+            mutateToday();   // ✅ here도 today만
             return;
           }
 
-          const deltaItems = payload.items as MonitoringItem[];
+          // 2) DELTA 래퍼 형태: { kind, type, items: [...] }
+          if (payload && Array.isArray(payload.items)) {
+            const typeFieldRaw =
+              typeof payload.type === 'string'
+                ? payload.type
+                : typeof payload.Type === 'string'
+                  ? payload.Type
+                  : null;
+            const msgType = typeFieldRaw ? typeFieldRaw.toUpperCase() : null;
 
-          setItems((prev) => {
-            if (!prev || !prev.length) {
-              return deltaItems;
+            if (msgType && msgType !== 'CELL') {
+              console.debug('[CELL SSE] ignore delta for type:', msgType);
+              return;
             }
 
-            const map = new Map<string, MonitoringItem>();
-            for (const ch of prev) {
-              map.set(cellItemKey(ch), ch);
-            }
-            for (const ch of deltaItems) {
-              map.set(cellItemKey(ch), ch);
-            }
-            return Array.from(map.values());
-          });
+            const deltaItems = payload.items as MonitoringItem[];
 
-          mutateToday();   // ✅ today만
-          return;
-        }
+            setItems((prev) => {
+              if (!prev || !prev.length) {
+                return deltaItems;
+              }
 
-        // 3) 나머지 JSON 구조 → CELL 관련이면 전체 재조회
-        const typeField =
-          typeof payload.Type === 'string'
-            ? payload.Type.toUpperCase()
-            : typeof payload.type === 'string'
-              ? payload.type.toUpperCase()
-              : null;
+              const map = new Map<string, MonitoringItem>();
+              for (const ch of prev) {
+                map.set(cellItemKey(ch), ch);
+              }
+              for (const ch of deltaItems) {
+                map.set(cellItemKey(ch), ch);
+              }
+              return Array.from(map.values());
+            });
 
-        if (!typeField || typeField === 'CELL') {
-          console.debug('[CELL SSE] unsupported JSON shape → mutate():', payload);
-          mutate();
-          mutateToday();   // ✅ today만
-        } else {
-          console.debug(
-            '[CELL SSE] unsupported JSON but type is not CELL, ignore:',
-            typeField,
+            mutateToday();   // ✅ today만
+            return;
+          }
+
+          // 3) 나머지 JSON 구조 → CELL 관련이면 전체 재조회
+          const typeField =
+            typeof payload.Type === 'string'
+              ? payload.Type.toUpperCase()
+              : typeof payload.type === 'string'
+                ? payload.type.toUpperCase()
+                : null;
+
+          if (!typeField || typeField === 'CELL') {
+            console.debug('[CELL SSE] unsupported JSON shape → mutate():', payload);
+            mutate();
+            mutateToday();   // ✅ today만
+          } else {
+            console.debug(
+              '[CELL SSE] unsupported JSON but type is not CELL, ignore:',
+              typeField,
+            );
+          }
+        } catch (err) {
+          console.error(
+            '[CELL SSE] JSON parse error → mutate() fallback:',
+            err,
+            dataText,
           );
+          mutate();
+          mutateToday();     // ✅ today만
         }
-      } catch (err) {
-        console.error(
-          '[CELL SSE] JSON parse error → mutate() fallback:',
-          err,
-          dataText,
-        );
-        mutate();
-        mutateToday();     // ✅ today만
-      }
+      };
+
+      es.onerror = (err) => {
+        console.error('[CELL SSE] error → will retry in 5s', err);
+
+        if (es) {
+          es.close();
+          es = null;
+        }
+
+        if (!retryTimer) {
+          retryTimer = window.setTimeout(() => {
+            connect();
+          }, 5000);
+        }
+      };
     };
 
-    es.onerror = (err) => console.error('[CELL SSE] error', err);
+    connect();
 
     return () => {
-      console.info('[CELL SSE] disconnected');
-      es.close();
+      console.info('[CELL SSE] cleanup');
+      if (es) es.close();
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [mutate, mutateToday]);   // ✅ mutateMonth 제거
+  }, [mutate, mutateToday]);   // ✅ mutateMonth는 여기서 안 건드림
 
 
   // 3) 검색

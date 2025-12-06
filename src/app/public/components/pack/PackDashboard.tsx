@@ -490,55 +490,101 @@ export default function DashboardPack() {
   // ===============================
   // 2) SSE: 갱신 트리거 (PACK은 SSE 올 때만 재조회)
   // ===============================
+  // ===============================
+// 2) SSE: 갱신 트리거 (PACK은 SSE + 재접속)
+// ===============================
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const es = new EventSource(SSE_URL);
+    let es: EventSource | null = null;
+    let retryTimer: number | null = null;
 
-    es.onopen = () => console.info('[PACK SSE] connected:', SSE_URL);
-
-    es.onmessage = (ev) => {
-      const dataText = ev.data;
-      if (!dataText) return;
-
-      try {
-        const payload = JSON.parse(dataText);
-        console.debug('[PACK SSE] payload:', payload);
-
-        // IngestService 쪽 포맷 가정:
-        // { kind: "MONITORING_DELTA", type: "PACK" | "CELL", items: [...] }
-        if (payload?.kind === 'MONITORING_DELTA' && payload?.type === 'PACK') {
-          mutate();
-          mutateToday();   // ✅ 오늘 전력량만 갱신
-          return;
-        }
-
-        // 혹시 다른 JSON 구조이지만 PACK 관련이면 전체 재조회
-        const typeField =
-          typeof payload.Type === 'string'
-            ? payload.Type.toUpperCase()
-            : typeof payload.type === 'string'
-              ? payload.type.toUpperCase()
-              : null;
-
-        if (!typeField || typeField === 'PACK') {
-          console.debug('[PACK SSE] unsupported JSON → mutate() fallback');
-          mutate();
-          mutateToday();   // ✅ today만
-        }
-      } catch (e) {
-        // JSON 파싱 안 되는 단순 문자열/기타 이벤트 → fallback
-        console.debug('[PACK SSE] non-JSON event, fallback mutate()', e);
-        mutate();
-        mutateToday();     // ✅ today만
+    const connect = () => {
+      // 기존 연결 정리
+      if (es) {
+        es.close();
+        es = null;
       }
+
+      console.info('[PACK SSE] connecting:', SSE_URL);
+      es = new EventSource(SSE_URL);
+
+      es.onopen = () => {
+        console.info('[PACK SSE] connected:', SSE_URL);
+
+        // 🔥 서버 재시작 후 다시 붙었을 때,
+        // 한 번 전체 리스트 + 오늘 전력량 재조회
+        mutate();
+        mutateToday();
+
+        // 재시도 타이머 있으면 제거
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+      };
+
+      es.onmessage = (ev) => {
+        const dataText = ev.data;
+        if (!dataText) return;
+
+        try {
+          const payload = JSON.parse(dataText);
+          console.debug('[PACK SSE] payload:', payload);
+
+          // IngestService 포맷 가정:
+          // { kind: "MONITORING_DELTA", type: "PACK" | "CELL", items: [...] }
+          if (payload?.kind === 'MONITORING_DELTA' && payload?.type === 'PACK') {
+            mutate();
+            mutateToday();   // ✅ 오늘 전력량만 갱신
+            return;
+          }
+
+          // 다른 JSON 구조지만 PACK 관련이면 전체 재조회
+          const typeField =
+            typeof payload.Type === 'string'
+              ? payload.Type.toUpperCase()
+              : typeof payload.type === 'string'
+                ? payload.type.toUpperCase()
+                : null;
+
+          if (!typeField || typeField === 'PACK') {
+            console.debug('[PACK SSE] unsupported JSON → mutate() fallback');
+            mutate();
+            mutateToday();   // ✅ today만
+          }
+        } catch (e) {
+          // JSON 파싱 안 되는 단순 문자열/기타 이벤트 → fallback
+          console.debug('[PACK SSE] non-JSON event, fallback mutate()', e);
+          mutate();
+          mutateToday();     // ✅ today만
+        }
+      };
+
+      es.onerror = (err) => {
+        console.error('[PACK SSE] error → will retry in 5s', err);
+
+        if (es) {
+          es.close();
+          es = null;
+        }
+
+        // 5초 후 재접속 시도 (중복 타이머 방지)
+        if (!retryTimer) {
+          retryTimer = window.setTimeout(() => {
+            connect();
+          }, 5000);
+        }
+      };
     };
 
-    es.onerror = (err) => {
-      console.error('[PACK SSE] error', err);
-    };
+    connect();
 
-    return () => es.close();
+    return () => {
+      console.info('[PACK SSE] cleanup');
+      if (es) es.close();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [mutate, mutateToday]);
 
   // ===============================

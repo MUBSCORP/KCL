@@ -71,6 +71,7 @@ interface ListItem {
 
 interface ListProps {
   listData: ListItem[];
+  canEditMemo: boolean;   // 🔹 추가
 }
 
 type StatusToken = 'rest' | 'ongoing' | 'stop' | 'alarm' | 'completion';
@@ -144,7 +145,7 @@ function getCycleVisual(item: ListItem): { totalDots: number; activeDots: number
   };
 }
 
-export default function List({ listData }: ListProps) {
+export default function List({ listData , canEditMemo}: ListProps) {
   const [open, setOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<ListItem | null>(null);
   const [selectedMemo, setSelectedMemo] = React.useState<ListItem | null>(null);
@@ -207,6 +208,11 @@ export default function List({ listData }: ListProps) {
   ): { eqpid: string; index: number } | null => {
     if (!item) {
       showMsg('선택된 항목이 없어 메모 API를 호출할 수 없습니다.', 'error');
+      return null;
+    }
+
+    if (!canEditMemo) {
+      showMsg('메모 저장/삭제 권한이 없습니다.', 'error');
       return null;
     }
 
@@ -413,7 +419,7 @@ export default function List({ listData }: ListProps) {
                     <dd>{item.step}</dd>
                   </dl>
                   <dl>
-                    <dt>토탈사이클</dt>
+                    <dt>사이클</dt>
                     <dd>{item.cycleCount}</dd>
                   </dl>
                   <dl>
@@ -502,13 +508,14 @@ export default function List({ listData }: ListProps) {
                     rows={5}
                     value={text}
                     onChange={e => setText(e.target.value)}
+                    readOnly={!canEditMemo}
                   />
                   <div className="btnWrap">
                     <button
                       type="button"
                       className="btnDel"
                       onClick={handleDelete}
-                      disabled={saving}
+                      disabled={saving || !canEditMemo}
                     >
                       <span>삭제</span>
                     </button>
@@ -516,7 +523,7 @@ export default function List({ listData }: ListProps) {
                       type="button"
                       className="btnConfirm"
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={saving || !canEditMemo}
                     >
                       <span>{saving ? '저장중...' : '저장'}</span>
                     </button>

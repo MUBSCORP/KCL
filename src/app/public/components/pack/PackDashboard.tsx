@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { PowerUnit, detectPowerUnit, scaleByUnit } from '@/utils/powerUnit';
+import { useAuthStore } from '@/store/auth.store';
+
 
 // ===============================
 // 타입 정의
@@ -356,6 +358,18 @@ type EquipGroup = {
 };
 
 export default function DashboardPack() {
+
+  // 🔐 로그인/권한 정보
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+
+  const isLoggedIn = !!token && !!user;
+  const mgtIdx = user?.mgtIdx;
+
+
+  // 🔑 메모 편집 권한: "로그인 + mgtIdx !== 4" 인 사람만 허용
+  const canEditMemo = isLoggedIn && mgtIdx !== 4;
+
   // 🔹 List 강제 리렌더용 토큰 (최초 1회)
   const [listRenderToken, setListRenderToken] = useState(0);
   const hasForcedListRenderRef = useRef(false);
@@ -957,7 +971,7 @@ export default function DashboardPack() {
         <div className="innerWrapper">
           {loading && <div className="loading">불러오는 중…</div>}
           {error && <div className="error">목록을 불러오지 못했습니다.</div>}
-          {displayList && <List key={listRenderToken} listData={displayList} />}
+          {displayList && <List key={listRenderToken} listData={displayList} canEditMemo={canEditMemo} />}
         </div>
       </section>
 
@@ -1021,7 +1035,7 @@ export default function DashboardPack() {
             <section className="monitoring">
               <h2 className="ir">모니터링 화면</h2>
               <div className="innerWrapper">
-                <List key={listRenderToken} listData={displayList} />
+                <List key={listRenderToken} listData={displayList} canEditMemo={canEditMemo} />
               </div>
             </section>
           </DialogContent>

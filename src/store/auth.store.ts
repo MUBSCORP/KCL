@@ -11,6 +11,7 @@ export type User = {
   memId?: string;
   dept?: string;
   displayName?: string;
+  mgtIdx?: number;
 } | null;
 
 type AuthState = {

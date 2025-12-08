@@ -8,6 +8,7 @@ export type LoginRes = {
   memId: string;
   dept?: string;
   displayName?: string;
+  mgtIdx?: number;    // 🔹 권한(관리자/사용자) 구분용
 };
 
 type ErrorRes = {

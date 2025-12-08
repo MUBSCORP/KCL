@@ -12,6 +12,8 @@ type List2Props = React.ComponentProps<typeof List2>;
 type ListItem = List2Props['listData'][number];
 type PowerUnit = 'W' | 'kW' | 'MW';
 
+import { useAuthStore } from '@/store/auth.store';
+
 // 값(W 등) 기준으로 자동 스케일링
 export function scalePower(value: number): { value: number; unit: PowerUnit } {
   const abs = Math.abs(value);
@@ -391,6 +393,16 @@ function normalizeByCoordinate(list: MonitoringItem[]): MonitoringItem[] {
 
 
 export default function DashboardCell() {
+
+  // 🔐 로그인/권한 정보
+  const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
+  const isLoggedIn = !!token && !!user;
+  const mgtIdx = user?.mgtIdx;
+
+  // 🔑 메모 편집 권한: "로그인 + mgtIdx !== 4" 인 사람만 허용
+  const canEditMemo = isLoggedIn && mgtIdx !== 4;
+
   // 🔹 List2 강제 리렌더용 토큰
   const [listRenderToken, setListRenderToken] = useState(0);
   const hasForcedListRenderRef = useRef(false);
@@ -1243,6 +1255,8 @@ export default function DashboardCell() {
             <List2
               key={listRenderToken}
               listData={uiList}
+              canEditMemo={canEditMemo}
+
               onResetByDetail={(item) => {
                 if (!item.eqpid) return;
                 const chamberIndex = item.channelIndex ?? 1;
@@ -1326,6 +1340,8 @@ export default function DashboardCell() {
                 <List2
                   key={listRenderToken}
                   listData={uiList}
+                  canEditMemo={canEditMemo}
+
                   onResetByDetail={(item) => {
                     if (!item.eqpid) return;
                     const chamberIndex = item.channelIndex ?? 1;

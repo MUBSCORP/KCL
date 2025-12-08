@@ -51,6 +51,7 @@ interface ListProps {
   listData: ListItem[];
   /** 팝업 닫을 때 장비별 RESET 규칙 적용용 콜백 (선택) */
   onResetByDetail?: (item: ListItem) => void;
+  canEditMemo: boolean;              // 🔹 추가
 }
 
 /** 채널 상태(status) → CSS 토큰 매핑 (chip 용) */
@@ -63,7 +64,7 @@ const mapChannelStatusToCss = (
   return 'available';
 };
 
-export default function List({ listData, onResetByDetail }: ListProps) {
+export default function List({ listData, onResetByDetail, canEditMemo }: ListProps) {
   const [open, setOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
 
@@ -128,6 +129,11 @@ export default function List({ listData, onResetByDetail }: ListProps) {
       console.warn('[CELL] missing eqpid/channelIndex for memo API', item);
       return null;
     }
+    if (!canEditMemo) {
+      showMsg('메모 저장/삭제 권한이 없습니다.', 'error');
+      return null;
+    }
+
     return { eqpid: item.eqpid, channel: item.channelIndex };
   };
 
@@ -332,13 +338,14 @@ export default function List({ listData, onResetByDetail }: ListProps) {
                     rows={5}
                     value={text}
                     onChange={e => setText(e.target.value)}
+                    readOnly={!canEditMemo}
                   />
                   <div className="btnWrap">
                     <button
                       type="button"
                       className="btnDel"
                       onClick={handleDelete}
-                      disabled={saving}
+                      disabled={saving || !canEditMemo}
                     >
                       <span>삭제</span>
                     </button>
@@ -346,7 +353,7 @@ export default function List({ listData, onResetByDetail }: ListProps) {
                       type="button"
                       className="btnMod"
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={saving || !canEditMemo}
                     >
                       <span>{saving ? '저장중...' : '저장'}</span>
                     </button>

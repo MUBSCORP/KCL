@@ -12,6 +12,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const colors = ['#008CFF', '#45D141', '#FFEE00', '#FF2626'];
+  const colorsTxt = ['#fff', '#000', '#000', '#fff'];
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -46,7 +47,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
             ...data.reduce(
               (acc, d, i) => {
                 acc[`b${i}`] = {
-                  color: '#000',
+                  color: colorsTxt[i],
                   backgroundColor: colors[i],
                   borderRadius: 3,
                   padding: [3, 4, 1],
@@ -66,7 +67,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
           name: title,
           type: 'pie',
           radius: ['50%', '90%'],
-          center: ['27%', '50%'],
+          center: ['23%', '50%'],
           avoidLabelOverlap: false,
           label: {
             show: false,
@@ -76,6 +77,10 @@ export default function ChartOperation({ title, data }: ChartProps) {
             fontWeight: 'bold',
           },
           emphasis: {
+            itemStyle: {
+              opacity: 1,
+              color: 'inherit',
+            },
             label: {
               show: true, // hover 시 표시
               fontSize: 12,
@@ -103,7 +108,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '22rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '23rem', height: '10.4rem' }} />
     </div>
   );
 }

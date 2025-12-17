@@ -70,7 +70,7 @@
                 height: 2.4rem;
                 color: var(--co-white);
                 font-weight: 700;
-                background-color: var(--co-green);
+                background-color: #7a902a;
                 border-radius: 0.5rem;
                 font-size: 1.2rem;
               }
@@ -210,14 +210,16 @@
       }
       .resultArea {
         flex: 1;
+        border: 1px solid var(--co-red);
+        background-color: #fff8f8;
+        border-radius: 0.6rem;
+        overflow: hidden;
         .innerCont {
           @include flexArea($justify: space-between, $align: flex-start, $gap: 0.4rem, $direction: column);
           height: 10rem;
           overflow: auto;
           background-color: var(--co-white);
           padding: 0.7rem 1rem;
-          border: 1px solid var(--co-border);
-          border-radius: 0.6rem;
           .tit {
             position: relative;
             font-size: 1.4rem;

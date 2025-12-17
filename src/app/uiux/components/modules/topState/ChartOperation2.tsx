@@ -8,11 +8,11 @@ interface ChartProps {
   data: { name: string; value: number }[];
 }
 
-export default function ChartStatus({ title, data }: ChartProps) {
+export default function ChartOperation2({ title, data }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const colors = ['#FFD1CC', '#CCE5F4', '#FFF5CC', '#E6FFCC', '#E6D5ED', '#FFDCEC'];
-  const colorsBorder = ['#FF9B91', '#6FB8E3', '#EBCE54', '#B8E886', '#DCAAF1', '#F6A8CC'];
+  const colors = ['#008CFF', '#45D141', '#FFEE00', '#FF2626'];
+  const colorsTxt = ['#fff', '#000', '#000', '#fff'];
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -34,11 +34,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
         right: 0,
         top: 'center',
         icon: 'circle',
-        itemWidth: 0,
-        itemHeight: 0,
+        itemWidth: 6,
+        itemHeight: 6,
         formatter: (name: string) => {
           const idx = data.findIndex((d) => d.name === name);
-          return `{b${idx}|${name}}`;
+          return `{a|${name}} {b${idx}|${data[idx].value}대}`;
         },
         textStyle: {
           fontSize: 10,
@@ -47,12 +47,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
             ...data.reduce(
               (acc, d, i) => {
                 acc[`b${i}`] = {
-                  color: '#000',
+                  color: colorsTxt[i],
                   backgroundColor: colors[i],
-                  borderColor: colorsBorder[i],
-                  borderWidth: 1,
                   borderRadius: 3,
                   padding: [3, 4, 1],
+                  width: 25,
                   align: 'right',
                 };
                 return acc;
@@ -62,12 +61,13 @@ export default function ChartStatus({ title, data }: ChartProps) {
           },
         } as any,
       } as echarts.LegendComponentOption,
+
       series: [
         {
-          name: '장비현황',
+          name: title,
           type: 'pie',
           radius: ['50%', '90%'],
-          center: ['20%', '50%'],
+          center: ['30%', '50%'],
           avoidLabelOverlap: false,
           label: {
             show: false,
@@ -89,7 +89,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
           },
           labelLine: { show: false },
           data: data,
-          color: ['#FFD1CC', '#CCE5F4', '#FFF5CC', '#E6FFCC', '#E6D5ED', '#FFDCEC'],
+          color: colors,
         },
       ],
     };
@@ -103,12 +103,12 @@ export default function ChartStatus({ title, data }: ChartProps) {
       window.removeEventListener('resize', resizeObserver);
       chart.dispose();
     };
-  }, [data, total]);
+  }, [data, total, title]);
 
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '27.2rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '23rem', height: '10.4rem' }} />
     </div>
   );
 }

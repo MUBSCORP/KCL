@@ -5,6 +5,7 @@ import ChartRunning from '@/app/uiux/components/modules/topState/ChartRunning';
 import ChartState from '@/app/uiux/components/modules/topState/ChartState';
 import ChartState2 from '@/app/uiux/components/modules/topState/ChartState2';
 import ChartOperation from '@/app/uiux/components/modules/topState/ChartOperation';
+import ChartOperation2 from '@/app/uiux/components/modules/topState/ChartOperation2';
 import ChartToday from '@/app/uiux/components/modules/topState/ChartToday';
 import ChartMonth from '@/app/uiux/components/modules/topState/ChartMonth';
 import TopStateCenter from '@/app/uiux/components/modules/topState/TopStateCenter';
@@ -570,7 +571,7 @@ export default function DashboardPack() {
               <div className="left">
                 <ChartRunning title="장비가동률" total={chartData.total} running={chartData.running} />
                 <ChartState2 title="장비현황" data={chartData2} />
-                <ChartOperation title="장비가동현황" data={chartData3} />
+                <ChartOperation2 title="장비가동현황" data={chartData3} />
               </div>
             </div>
           </DialogContent>

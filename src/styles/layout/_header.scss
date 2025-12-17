@@ -45,6 +45,7 @@ header {
             span:not([class^='MuiTouchRipple']) {
               @include ell;
               height: auto;
+              line-height: 1.6;
             }
             &.isActive {
               color: var(--co-white);

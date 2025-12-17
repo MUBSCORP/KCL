@@ -77,6 +77,10 @@ export default function ChartStatus({ title, data }: ChartProps) {
             fontWeight: 'bold',
           },
           emphasis: {
+            itemStyle: {
+              opacity: 1,
+              color: 'inherit',
+            },
             label: {
               show: true, // hover 시 표시
               fontSize: 12,

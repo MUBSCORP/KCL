@@ -65,6 +65,10 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
             fontWeight: 'bold',
           },
           emphasis: {
+            itemStyle: {
+              opacity: 1,
+              color: 'inherit',
+            },
             label: {
               show: true, // hover 시 표시
               fontSize: 14,
@@ -76,7 +80,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
             { value: r, name: '가동' },
             { value: stopped, name: '정지' },
           ],
-          color: ['#86A315', '#E6E6E6'],
+          color: ['#7a902a', '#E6E6E6'],
         },
       ],
       // 중앙 퍼센트 텍스트를 원하면 아래 주석 해제
@@ -95,7 +99,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     <div className="chartCont type2">
       <h3 className="tit">{title}</h3>
       <div className="innerWrap">
-        <div className="chartWrap" ref={containerRef} style={{ width: '9.4rem', height: '10.4rem' }} />
+        <div className="chartWrap" ref={containerRef} style={{ width: '10.4rem', height: '10.4rem' }} />
         <div className="legend">
           <p>
             <strong>{String(percent)}</strong>%

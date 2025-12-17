@@ -19,10 +19,10 @@ export default function TopStateCenterResult({ item }: Props) {
   const troubleshooting =
     item.troubleshooting && item.troubleshooting.trim()
       ? item.troubleshooting
-      : '전원차단완료';
+      : '';
 
   // ✅ 제목 텍스트에 level 그대로 표시 (마크업/클래스/순서 변경 없음)
-  const titleText = item.level || '화재위험감지';
+  const titleText = item.level || '';
 
   return (
     <div className="resultArea">
@@ -37,11 +37,11 @@ export default function TopStateCenterResult({ item }: Props) {
         <div className="info">
           <dl>
             <dt>위치</dt>
-            <dd>B1-테스트룸 3</dd>
+            <dd></dd>
           </dl>
           <dl>
             <dt>담당</dt>
-            <dd>김엔지니어</dd>
+            <dd></dd>
           </dl>
           <dl>
             <dt>조치</dt>

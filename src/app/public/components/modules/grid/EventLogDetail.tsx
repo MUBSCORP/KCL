@@ -16,7 +16,20 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
         <p>왼쪽목록에서 항목을 선택해 주세요</p>
       </aside>
     );
+    const handleDownload = () => {
+      // ✅ env.local
+      const base = process.env.NEXT_PUBLIC_API_BASE ?? '';
+      const path = process.env.NEXT_PUBLIC_FILE_URL ?? '/api/files/download';
 
+      // ✅ alarmId = selectedLog.id (AlarmLogItem.builder().id(r.getAlarmid()) 로 내려주고 있음)
+      const alarmId = selectedLog.id;
+      if (!alarmId) return;
+
+      const url = `${base}${path}?alarmId=${encodeURIComponent(String(alarmId))}`;
+
+      // 가장 단순/확실: 브라우저 네비게이션으로 다운로드 트리거
+      window.open(url, '_blank');
+    };
   return (
     <aside className="detailAside">
       <div className="inner">
@@ -43,7 +56,7 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
         </dl>
         <dl>
           <dt>발생시간</dt>
-          <dd className="co-blue">{selectedLog.time}</dd>
+          <dd className="co-blue">{selectedLog.time_format}</dd>
         </dl>
         <dl>
           <dt>담당자</dt>
@@ -54,7 +67,7 @@ export default function EventLogDetail({ selectedLog }: EventLogDetailProps) {
           <dd>{selectedLog.action}</dd>
         </dl>*/}
         <div className="btnWrap">
-          <Button className="btnDownload">
+          <Button className="btnDownload" onClick={handleDownload}>
             <span>Get Analysis Package</span>
             <i />
           </Button>

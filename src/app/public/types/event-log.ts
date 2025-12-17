@@ -8,6 +8,7 @@ export interface LogItem {
   message: string;
   action: string | null;
   time: string;
+  time_format: string;
   solution: string | null;
   equipment: string;
   channel: string;

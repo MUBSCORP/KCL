@@ -44,7 +44,7 @@ header {
             @include trans;
             span:not([class^='MuiTouchRipple']) {
               @include ell;
-              height: auto;
+              height: 1.9rem;
               line-height: 1.6;
             }
             &.isActive {

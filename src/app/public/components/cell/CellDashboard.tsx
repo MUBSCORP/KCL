@@ -216,10 +216,6 @@ const ALARM_STATUS_LIST = [
 const COMPLETE_STEP_LIST = ['end ok', 'end ng', 'user termination'];
 
 
-
-
-
-
 function normalizeStatusName(s?: string | null): string {
   if (!s) return '';
   return s
@@ -906,7 +902,7 @@ export default function DashboardCell() {
         temp2,
         ch1: runCnt,
         ch2: alarmCnt + stopCnt,
-        ch3: completeCnt + idleCnt,
+        ch3: completeCnt + idleCnt + readyCnt,
         memo: !!memoText.length,
         memoText,
         memoTotal,

@@ -103,7 +103,7 @@ export default function EventLogGrid({
                     {row.action}
                   </TableCell>*/}
                   <TableCell align="center" className="time">
-                    {row.time}
+                    {row.time_format}
                   </TableCell>
                 </TableRow>
               ))}

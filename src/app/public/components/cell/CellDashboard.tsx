@@ -123,6 +123,7 @@ import ChartRunning from '@/app/public/components/modules/topState/ChartRunning'
 import ChartState from '@/app/public/components/modules/topState/ChartState';
 import ChartState2 from '@/app/public/components/modules/topState/ChartState2';
 import ChartOperation from '@/app/public/components/modules/topState/ChartOperation';
+import ChartOperation2 from '@/app/public/components/modules/topState/ChartOperation2';
 import ChartToday from '@/app/public/components/modules/topState/ChartToday';
 import ChartMonth from '@/app/public/components/modules/topState/ChartMonth';
 import TopStateCenter from '@/app/public/components/modules/topState/TopStateCenter';
@@ -1298,7 +1299,7 @@ export default function DashboardCell() {
                   running={runningChart.running}
                 />
                 <ChartState2 title="장비현황" data={stepChart} />
-                <ChartOperation title="장비가동현황" data={status4Chart} />
+                <ChartOperation2 title="장비가동현황" data={status4Chart} />
               </div>
             </div>
           </DialogContent>

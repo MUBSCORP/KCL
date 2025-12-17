@@ -18,6 +18,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
   };
+
   const t = Math.max(0, toNum(total));
   const r = Math.min(Math.max(0, toNum(running)), t);
   const stopped = Math.max(0, t - r);
@@ -29,9 +30,10 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     // 차트 인스턴스 1회 생성 후 재사용
     if (!chartRef.current) {
       chartRef.current = echarts.init(containerRef.current);
+
       const resize = () => chartRef.current && chartRef.current.resize();
       window.addEventListener('resize', resize);
-      // cleanup
+
       return () => {
         window.removeEventListener('resize', resize);
         chartRef.current?.dispose();
@@ -44,10 +46,9 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     if (!chartRef.current) return;
 
     const option: echarts.EChartsOption = {
-      // 🔴 전역 애니메이션 OFF
       animation: false,
       tooltip: {
-        show: false,                    // 퍼블: 툴팁 비표시
+        show: false,
         trigger: 'item',
         formatter: '{b}: {c}대 ({d}%)',
         confine: true,
@@ -57,18 +58,22 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
         {
           name: '장비가동률',
           type: 'pie',
-          radius: ['50%', '90%'],       // 퍼블 값
+          radius: ['50%', '90%'],
           avoidLabelOverlap: false,
           label: {
-            show: false,                // 퍼블: 기본 숨김
+            show: false,
             position: 'inside',
             formatter: ({ data }: any) => `${data?.value ?? 0}`,
             fontSize: 12,
             fontWeight: 'bold',
           },
           emphasis: {
+            itemStyle: {
+              opacity: 1,
+              color: 'inherit',
+            },
             label: {
-              show: true,               // 퍼블: hover 시 표시
+              show: true, // hover 시 표시
               fontSize: 14,
               fontWeight: 'bold',
             },
@@ -78,10 +83,10 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
             { value: r, name: '가동' },
             { value: stopped, name: '정지' },
           ],
-          color: ['#86A315', '#E6E6E6'],
+          color: ['#7a902a', '#E6E6E6'],
         },
       ],
-      // 중앙 퍼센트 텍스트가 필요하면 아래 주석 해제
+      // 중앙 퍼센트 텍스트를 원하면 아래 주석 해제
       // graphic: {
       //   type: 'text',
       //   left: 'center',
@@ -100,7 +105,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
         <div
           className="chartWrap"
           ref={containerRef}
-          style={{ width: '9.4rem', height: '10.4rem' }} // 퍼블 사이즈
+          style={{ width: '10.4rem', height: '10.4rem' }}
         />
         <div className="legend">
           <p>

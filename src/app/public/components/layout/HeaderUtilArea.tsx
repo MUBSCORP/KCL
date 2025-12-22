@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import icon from '@/assets/images/icon/arrow_right3.png';
 import { login } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
+import logo_sk from '@/assets/images/common/logo_sk.png';
 
 export default function HeaderUtilArea() {
   const [date, setDate] = useState('');
@@ -200,6 +201,7 @@ export default function HeaderUtilArea() {
                 <span>{loading ? '로그인 중…' : '로그인'}</span>
                 <Image src={icon} alt="" />
               </Button>
+              fdaf
             </div>
 
             {/* 아래 텍스트 에러는 남겨두고 싶으면 유지, 아니면 삭제 가능 */}
@@ -213,6 +215,12 @@ export default function HeaderUtilArea() {
             )}
           </form>
         )}
+        <Image
+          src={logo_sk}
+          className='rightLogo'
+          alt="SK signet"
+          priority
+        />
       </div>
     </div>
   );

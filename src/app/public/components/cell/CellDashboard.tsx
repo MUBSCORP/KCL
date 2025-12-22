@@ -10,7 +10,7 @@ import React from 'react';
 import List2 from '@/app/public/components/modules/monitoring/ListType2';
 type List2Props = React.ComponentProps<typeof List2>;
 type ListItem = List2Props['listData'][number];
-type PowerUnit = 'W' | 'kW' | 'MW';
+type PowerUnit = 'Wh' | 'kWh' | 'MWh';
 
 import { useAuthStore } from '@/store/auth.store';
 
@@ -18,20 +18,20 @@ import { useAuthStore } from '@/store/auth.store';
 export function scalePower(value: number): { value: number; unit: PowerUnit } {
   const abs = Math.abs(value);
   let scaled = value;
-  let unit: PowerUnit = 'W';
+  let unit: PowerUnit = 'Wh';
 
   if (abs >= 1_000_000) {
     // 1,000,000 이상 → MW
     scaled = value / 1_000_000;
-    unit = 'MW';
+    unit = 'MWh';
   } else if (abs >= 1_000) {
     // 1,000 이상 → kW
     scaled = value / 1_000;
-    unit = 'kW';
+    unit = 'kWh';
   } else {
     // 그 외 → W
     scaled = value;
-    unit = 'W';
+    unit = 'Wh';
   }
   const fixed = Number(scaled.toFixed(1));
   return { value: fixed, unit };
@@ -1071,7 +1071,7 @@ export default function DashboardCell() {
     const { unit: todayUnit } = scalePower(maxTodayAbs || 0);
 
     const todayDivisor =
-      todayUnit === 'MW' ? 1_000_000 : todayUnit === 'kW' ? 1_000 : 1;
+      todayUnit === 'MWh' ? 1_000_000 : todayUnit === 'kWh' ? 1_000 : 1;
 
     const todayData = [
       {
@@ -1099,7 +1099,7 @@ export default function DashboardCell() {
 
     const { unit: monthUnit } = scalePower(maxMonthAbs || 0);
     const monthDivisor =
-      monthUnit === 'MW' ? 1_000_000 : monthUnit === 'kW' ? 1_000 : 1;
+      monthUnit === 'MWh' ? 1_000_000 : monthUnit === 'kWh' ? 1_000 : 1;
 
     const monthData = monthRows.map((row) => ({
       name: row.month ?? '-',

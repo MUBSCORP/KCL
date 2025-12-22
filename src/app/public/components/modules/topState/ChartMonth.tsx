@@ -17,7 +17,7 @@ export default function ChartMonth({ title, data, unit }: ChartProps) {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
-    const displayUnit: PowerUnit = unit ?? 'W';
+    const displayUnit: PowerUnit = unit ?? 'Wh';
 
     const option: echarts.EChartsOption = {
       animation: false,
@@ -85,7 +85,7 @@ export default function ChartMonth({ title, data, unit }: ChartProps) {
 
   return (
     <div className="chartCont">
-      <h3 className="tit">
+      <h3 className="tit" style={{ marginBottom: '1.7rem'}}>
         {title}
         {unit && <span style={{ marginLeft: 4, fontSize: '0.8rem' }}>({unit})</span>}
       </h3>

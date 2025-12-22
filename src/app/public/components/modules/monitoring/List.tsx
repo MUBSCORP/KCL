@@ -361,7 +361,7 @@ export default function List({ listData, canEditMemo }: ListProps) {
                 <div className="bodyArea">
                   <dl><dt>전압</dt><dd>{item.voltage}</dd></dl>
                   <dl><dt>전류</dt><dd>{item.current}</dd></dl>
-                  <dl className={item.powerOn ? 'on' : ''}><dt>파워</dt><dd>{item.power}</dd></dl>
+                  <dl className={item.powerOn ? 'on' : ''}><dt>전력</dt><dd>{item.power}</dd></dl>
                   <dl><dt>스텝</dt><dd>{item.step}</dd></dl>
                   <dl><dt>사이클</dt><dd>{item.cycleCount}</dd></dl>
                   <dl><dt>RLY</dt><dd>{item.rly}</dd></dl>

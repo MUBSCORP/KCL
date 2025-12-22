@@ -22,6 +22,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
     const chart = echarts.init(chartRef.current);
 
     const option: echarts.EChartsOption = {
+      animation: false,
       tooltip: {
         show: false,
         trigger: 'item',

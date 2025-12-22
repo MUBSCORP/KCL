@@ -17,7 +17,7 @@ export default function ChartToday({ title, data, unit }: ChartProps) {
     if (!chartRef.current) return;
 
     const chart = echarts.init(chartRef.current);
-    const displayUnit: PowerUnit = unit ?? 'W';
+    const displayUnit: PowerUnit = unit ?? 'Wh';
 
     const option: echarts.EChartsOption = {
       animation: false,

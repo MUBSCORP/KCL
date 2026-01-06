@@ -120,7 +120,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '29.2rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '29.2rem', height: '10.8rem' }} />
     </div>
   );
 }

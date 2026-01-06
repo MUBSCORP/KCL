@@ -99,7 +99,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
     <div className="chartCont type2">
       <h3 className="tit">{title}</h3>
       <div className="innerWrap">
-        <div className="chartWrap" ref={containerRef} style={{ width: '10.4rem', height: '10.4rem' }} />
+        <div className="chartWrap" ref={containerRef} style={{ width: '10.4rem', height: '10.8rem' }} />
         <div className="legend">
           <p>
             <strong>{String(percent)}</strong>%

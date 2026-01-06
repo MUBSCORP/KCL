@@ -56,6 +56,13 @@ type ResetMode = 'clear-blink' | 'complete-to-available';
 // 🔹 장비(그룹) 키: eqpid + chamberIndex
 const groupKeyOf = (eqpid: string, chamberIndex: number) => `${eqpid}__${chamberIndex || 1}`;
 
+// ✅ 5분 이상 변화 없으면 comm error 로 강제 표기
+const COMM_ERROR_MS = 5 * 60 * 1000;
+const COMM_ERROR_STEP = 'Comm Error';
+function nowMs() {
+  return Date.now();
+}
+
 // ✅ 채널 신선도(freshness) 계산
 function getFreshnessScore(ch: MonitoringItem): number {
   if (ch.time) {
@@ -344,6 +351,19 @@ export default function DashboardPack() {
 
   const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>({});
 
+  // ✅ 그룹별 마지막 변경 시각 기록 (eqpid__chamberIndex -> ms)
+  const lastChangeRef = useRef<Record<string, number>>({});
+  // ✅ 그룹별 signature(변경 감지용)
+  const lastSigRef = useRef<Record<string, string>>({});
+  // ✅ 시간 경과로 comm error 전환 반영용 tick (1분마다 갱신)
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const t = window.setInterval(() => setTick((v) => v + 1), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+
   const { data: listData, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
     refreshInterval: 0,
     revalidateOnFocus: false,
@@ -523,10 +543,46 @@ export default function DashboardPack() {
       g.channels.push(ch);
     }
 
-    return Array.from(map.values()).sort((a, b) => {
+    const groups = Array.from(map.values()).sort((a, b) => {
       if (a.eqpid === b.eqpid) return a.chamberIndex - b.chamberIndex;
       return a.eqpid.localeCompare(b.eqpid);
     });
+
+    // ✅ 그룹별 변경 감지(signature) + lastChange 갱신
+    const now = nowMs();
+
+    for (const g of groups) {
+      const k = groupKeyOf(g.eqpid, g.chamberIndex);
+
+      // "변경"으로 판단할 필드들(필요하면 추가/삭제 가능)
+      const sig = g.channels
+        .map((ch) =>
+          [
+            ch.channelIndex ?? ch.chamberIndex ?? '',
+            ch.time ?? '',
+            ch.status ?? '',
+            ch.statusLabel ?? '',
+            ch.operation ?? '',
+            ch.step ?? '',
+            ch.stepName ?? '',
+            ch.voltage ?? '',
+            ch.current ?? '',
+            ch.power ?? '',
+            ch.alarmCount ?? '',
+            ch.hasAlarms ? '1' : '0',
+          ].join('|'),
+        )
+        .join('||');
+
+      if (lastSigRef.current[k] !== sig) {
+        lastSigRef.current[k] = sig;
+        lastChangeRef.current[k] = now;
+      } else {
+        if (!lastChangeRef.current[k]) lastChangeRef.current[k] = now;
+      }
+    }
+
+    return groups;
   }, [listData]);
 
   // ✅ RESET 자동 해제 (핵심)
@@ -544,7 +600,6 @@ export default function DashboardPack() {
 
         const { uiOperation, uiShutdown } = calcGroupState(g.channels);
 
-        // complete-to-available: completion이 깨지는 순간(다른 상태가 한번이라도 나오면) reset 해제
         if (mode === 'complete-to-available') {
           if (uiOperation !== 'completion') {
             delete next[k];
@@ -552,7 +607,6 @@ export default function DashboardPack() {
           }
         }
 
-        // clear-blink: shutdown이 사라지면 reset 해제
         if (mode === 'clear-blink') {
           if (!uiShutdown) {
             delete next[k];
@@ -621,6 +675,14 @@ export default function DashboardPack() {
       let finalOperation = uiOperation;
       let finalShutdown = uiShutdown;
 
+      // ✅ 5분 이상 데이터 변화 없음 → comm error로 강제
+      const lastChanged = lastChangeRef.current[gKey] ?? 0;
+      const isCommError = lastChanged > 0 && (nowMs() - lastChanged) >= COMM_ERROR_MS;
+
+      if (isCommError) {
+        finalOperation = 'stop';
+        finalShutdown = true;
+      }
 
       // ✅ RESET: blinking만 끄는 케이스
       if (resetMode === 'clear-blink' && finalShutdown) {
@@ -633,10 +695,14 @@ export default function DashboardPack() {
         finalOperation = 'available';
       }
 
-      // ✅ 핵심: RESET으로 available로 바뀐 경우 라벨/상태도 같이 대기로 맞춰줌
-      const overrideStatusLabel = resetCompleteToAvailable ? '대기' : rep.statusLabel;
-      const overrideStatus = resetCompleteToAvailable ? 'rest' : rep.status;
+      // ✅ RESET으로 available로 바뀐 경우 라벨/상태도 같이 대기로
+      const overrideStatusLabel = isCommError
+        ? '알람'
+        : (resetCompleteToAvailable ? '대기' : rep.statusLabel);
 
+      const overrideStatus = isCommError
+        ? 'alarm'
+        : (resetCompleteToAvailable ? 'rest' : rep.status);
 
       const rawOperation = (rep.rawStatus ?? rep.operation ?? '').trim();
       const isPowerSharing = rawOperation === 'Power sharing';
@@ -651,16 +717,23 @@ export default function DashboardPack() {
         operation: finalOperation,
         shutdown: finalShutdown,
         powerOn: isPowerSharing,
-        // ✅ 여기 2개 추가
+
         statusLabel: overrideStatusLabel,
         status: overrideStatus,
+
+        // ✅ 프론트 강제 comm error 표시용
+        rawStatus: isCommError ? 'comm error' : rep.rawStatus,
+        hasAlarms: isCommError ? true : rep.hasAlarms,
+
+        // ✅ stepName도 comm error면 강제 표기(리스트/모달에서 쓰는 곳 있으면 유용)
+        stepName: isCommError ? COMM_ERROR_STEP : rep.stepName,
       };
 
       result.push(item);
     }
 
     return result;
-  }, [equipGroups, searchKeywords, resetTargets]);
+  }, [equipGroups, searchKeywords, resetTargets, tick]);
 
   useEffect(() => {
     if (hasForcedListRenderRef.current) return;
@@ -687,13 +760,7 @@ export default function DashboardPack() {
     const totalEquip = equipGroups.length;
     let runningEquip = 0;
 
-    for (const g of equipGroups) {
-      const { uiOperation } = calcGroupState(g.channels);
-      if (uiOperation === 'ongoing') runningEquip++;
-    }
-
-    const allChannels = equipGroups.flatMap((g) => g.channels);
-
+    // ✅ status/step 집계를 "장비(그룹)" 기준으로 산정 (comm error도 장비 단위로 +1)
     const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
       대기: 0,
       진행중: 0,
@@ -701,23 +768,45 @@ export default function DashboardPack() {
       알람: 0,
     };
 
-    for (const g of equipGroups) {
-      const { uiOperation, groupHasAlarms } = calcGroupState(g.channels);
+    const stepBuckets: Record<string, number> = {};
 
-      if (groupHasAlarms) statusBuckets['알람'] += 1;
-      else if (uiOperation === 'stop') statusBuckets['일시정지'] += 1;
-      else if (uiOperation === 'ongoing') statusBuckets['진행중'] += 1;
-      else statusBuckets['대기'] += 1;
+    for (const g of equipGroups) {
+      const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
+
+      const lastChanged = lastChangeRef.current[gKey] ?? 0;
+      const isCommError = lastChanged > 0 && (nowMs() - lastChanged) >= COMM_ERROR_MS;
+
+      // runningChart
+      if (!isCommError) {
+        const { uiOperation } = calcGroupState(g.channels);
+        if (uiOperation === 'ongoing') runningEquip++;
+      } else {
+        // comm error면 running에 포함하지 않음
+      }
+
+      // status chart (장비현황/가동현황)
+      if (isCommError) {
+        statusBuckets['알람'] += 1;
+      } else {
+        const { uiOperation, groupHasAlarms } = calcGroupState(g.channels);
+
+        if (groupHasAlarms) statusBuckets['알람'] += 1;
+        else if (uiOperation === 'stop') statusBuckets['일시정지'] += 1;
+        else if (uiOperation === 'ongoing') statusBuckets['진행중'] += 1;
+        else statusBuckets['대기'] += 1;
+      }
+
+      // stepName chart (Top N): comm error면 Comm Error로 +1
+      if (isCommError) {
+        stepBuckets[COMM_ERROR_STEP] = (stepBuckets[COMM_ERROR_STEP] ?? 0) + 1;
+      } else {
+        const rep = g.channels.find((c) => c.stepName || c.step) ?? g.channels[0];
+        const raw = (rep.stepName ?? rep.step ?? '').trim();
+        if (raw) stepBuckets[raw] = (stepBuckets[raw] ?? 0) + 1;
+      }
     }
 
     const status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({ name, value }));
-
-    const stepBuckets: Record<string, number> = {};
-    for (const ch of allChannels) {
-      const raw = (ch.stepName ?? ch.step ?? '').trim();
-      if (!raw) continue;
-      stepBuckets[raw] = (stepBuckets[raw] ?? 0) + 1;
-    }
 
     const sortedSteps = Object.entries(stepBuckets).sort((a, b) => b[1] - a[1]);
     const TOP_N = 6;
@@ -728,7 +817,7 @@ export default function DashboardPack() {
       status4Chart,
       stepChart,
     };
-  }, [equipGroups]);
+  }, [equipGroups, tick]);
 
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [isZoomOpen2, setIsZoomOpen2] = useState(false);
@@ -782,9 +871,7 @@ export default function DashboardPack() {
         <div className="innerWrapper">
           {loading && <div className="loading">불러오는 중…</div>}
           {error && <div className="error">목록을 불러오지 못했습니다.</div>}
-          {displayList && (
-            <List key={listRenderToken} listData={displayList} canEditMemo={canEditMemo} />
-          )}
+          {displayList && <List key={listRenderToken} listData={displayList} canEditMemo={canEditMemo} />}
         </div>
       </section>
 

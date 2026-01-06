@@ -38,8 +38,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
         itemWidth: 0,
         itemHeight: 0,
         formatter: (name: string) => {
+          const maxLength = 10;
+          const short = name.length > maxLength ? name.slice(0, maxLength) + '...' : name;
+
           const idx = data.findIndex((d) => d.name === name);
-          return `{b${idx}|${name}}`;
+          return idx >= 0 ? `{b${idx}|${short}}` : short;
         },
         textStyle: {
           fontSize: 10,
@@ -54,7 +57,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
                   borderWidth: 1,
                   borderRadius: 3,
                   padding: [3, 4, 1],
-                  align: 'right',
+                  align: 'left',
+                  width: 65,
+                  overflow: 'truncate',
+                  ellipsis: '...',
+                  lineHeight: 16,
                 };
                 return acc;
               },
@@ -78,8 +85,12 @@ export default function ChartStatus({ title, data }: ChartProps) {
             fontWeight: 'bold',
           },
           emphasis: {
+            itemStyle: {
+              opacity: 1,
+              color: 'inherit',
+            },
             label: {
-              show: true, // hover 시 표시
+              show: true,
               fontSize: 12,
               fontWeight: 'bold',
             },

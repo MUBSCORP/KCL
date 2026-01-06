@@ -48,7 +48,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
         borderWidth: 1,
         borderRadius: 3,
         padding: [3, 4, 1],
-        align: 'right',
+        align: 'left',
+        width: 65,
+        overflow: 'truncate',
+        ellipsis: '...',
+        lineHeight: 16,
       };
       return acc;
     }, {} as Record<string, any>);
@@ -70,8 +74,11 @@ export default function ChartStatus({ title, data }: ChartProps) {
         itemWidth: 0,
         itemHeight: 0,
         formatter: (name: string) => {
-          const idx = data.findIndex((d) => d.name === name);
-          return idx >= 0 ? `{b${idx}|${name}}` : name;
+          const maxLength = 10;
+          const short = name.length > maxLength ? name.slice(0, maxLength) + '...' : name;
+
+          const idx = data.findIndex(d => d.name === name);
+          return idx >= 0 ? `{b${idx}|${short}}` : short;
         },
         textStyle: {
           fontSize: 10,
@@ -87,7 +94,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
           name: '장비현황',
           type: 'pie',
           radius: ['50%', '90%'],
-          center: ['20%', '50%'],
+          center: ['18%', '50%'],
           avoidLabelOverlap: false,
           label: {
             show: false,
@@ -131,7 +138,7 @@ export default function ChartStatus({ title, data }: ChartProps) {
   return (
     <div className="chartCont">
       <h3 className="tit">{title}</h3>
-      <div className="chartWrap" ref={chartRef} style={{ width: '27.2rem', height: '10.4rem' }} />
+      <div className="chartWrap" ref={chartRef} style={{ width: '29.2rem', height: '10.4rem' }} />
     </div>
   );
 }

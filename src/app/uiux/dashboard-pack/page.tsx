@@ -29,12 +29,12 @@ export default function DashboardPack() {
   // chart props
   const chartData = { total: 20, running: 15 };
   const chartData2 = [
-    { name: 'Charge', value: 20 },
-    { name: 'Discharge', value: 15 },
-    { name: 'Rest', value: 10 },
-    { name: 'Rest(ISO)', value: 10 },
-    { name: 'Pattern', value: 15 },
-    { name: 'Chargemap', value: 10 },
+    { name: 'Stepname 1', value: 20 },
+    { name: 'Stepname 2', value: 15 },
+    { name: 'Stepname 3', value: 10 },
+    { name: 'Stepname 4', value: 10 },
+    { name: 'Stepname 5', value: 15 },
+    { name: 'Stepname 6', value: 10 },
   ];
   const chartData3 = [
     { name: '대기', value: 13 },

@@ -141,8 +141,8 @@
                 margin-top: 0.3rem;
               }
               .desc {
-                font-size: 1.3rem;
-                font-weight: 500;
+                font-size: 1.4rem;
+                font-weight: 700;
                 text-align: left;
                 word-break: keep-all;
                 @include ell;
@@ -180,8 +180,8 @@
             }
             &.warning {
               .customBtn {
-                background-color: #fff7f1;
-                border-color: #ff6600;
+                // background-color: #fff7f1;
+                // border-color: #ff6600;
                 &::before {
                   content: '';
                   background: #f6f6f6 url(../../assets/images/icon/warning.png);
@@ -198,7 +198,7 @@
               .customBtn {
                 &::before {
                   content: '';
-                  background: #f6f6f6 url(../../assets/images/icon/danger.png);
+                  background: #ffdfdf url(../../assets/images/icon/danger.png);
                   background-size: 2rem;
                   background-repeat: no-repeat;
                   background-position: center;
@@ -281,7 +281,7 @@
         font-weight: 400;
         padding-left: 1rem;
         line-height: 1;
-        margin-bottom: 0.4rem;
+        margin-bottom: 1.7rem;
         &::before {
           content: '';
           position: absolute;

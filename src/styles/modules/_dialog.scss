@@ -4,8 +4,8 @@
 .dialogCont {
   &.wide {
     .MuiPaper-elevation {
-      width: 111rem;
-      max-width: 111rem;
+      width: 121rem;
+      max-width: 121rem;
     }
   }
   &.full {
@@ -29,6 +29,9 @@
         font-weight: 600;
         margin-bottom: 1rem;
         // border-bottom: 1px dashed var(--co-border);
+        position: absolute;
+        right: 2rem;
+        top: 1rem;
         .btnClose {
           padding: 1rem;
           svg {
@@ -220,6 +223,7 @@
           min-width: auto;
           .left {
             min-width: auto;
+            width: 100%;
             .chartWrap {
               width: 18.8rem !important;
               height: 20.8rem !important;

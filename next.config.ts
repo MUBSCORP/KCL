@@ -9,7 +9,16 @@ const nextConfig: NextConfig = {
       // 필요 시 다른 백엔드 API도 추가
     ];
   },
-
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: '**',
+        port: '8088',
+        pathname: '/api/files/**',
+      },
+    ],
+  },
   // scss source map
   reactStrictMode: true,
   productionBrowserSourceMaps: true,

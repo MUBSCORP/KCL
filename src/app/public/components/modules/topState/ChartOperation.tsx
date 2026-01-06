@@ -148,7 +148,7 @@ export default function ChartOperation({ title, data }: ChartProps) {
       <div
         className="chartWrap"
         ref={chartRef}
-        style={{ width: '23rem', height: '10.4rem' }} // ✅ 퍼블 반영(22 → 23)
+        style={{ width: '23rem', height: '10.8rem' }} // ✅ 퍼블 반영(22 → 23)
       />
     </div>
   );

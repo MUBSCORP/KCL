@@ -105,7 +105,7 @@ export default function ChartRunning({ title, total, running }: ChartProps) {
         <div
           className="chartWrap"
           ref={containerRef}
-          style={{ width: '10.4rem', height: '10.4rem' }}
+          style={{ width: '10.4rem', height: '10.8rem' }}
         />
         <div className="legend">
           <p>

@@ -38,8 +38,8 @@ export default function ChartStatus({ title, data }: ChartProps) {
         itemWidth: 0,
         itemHeight: 0,
         formatter: (name: string) => {
-          const maxLength = 10;
-          const short = name.length > maxLength ? name.slice(0, maxLength) + '...' : name;
+          const maxLength = 9;
+          const short = name.length > maxLength ? name.slice(0, maxLength-2) + '...' : name;
 
           const idx = data.findIndex((d) => d.name === name);
           return idx >= 0 ? `{b${idx}|${short}}` : short;

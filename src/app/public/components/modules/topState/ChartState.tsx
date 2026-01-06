@@ -67,9 +67,10 @@ export default function ChartStatus({ title, data }: ChartProps) {
         textStyle: { fontSize: 10 },
       },
       legend: {
-        orient: 'vertical',
+        orient: 'horizontal',
         right: 0,
         top: 'center',
+        width: 170,
         icon: 'circle',
         itemWidth: 0,
         itemHeight: 0,

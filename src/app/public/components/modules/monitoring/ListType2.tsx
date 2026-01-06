@@ -53,7 +53,15 @@ interface ListProps {
   onResetByDetail?: (item: ListItem) => void;
   canEditMemo: boolean;              // 🔹 추가
 }
-
+const suffixByChannelIndex = (idx?: number) => {
+  switch (Number(idx)) {
+    case 1: return 'A';
+    case 2: return 'B';
+    case 3: return 'C';
+    case 4: return 'D';
+    default: return ''; // 없거나 1~4 밖이면 아무것도 안 붙임
+  }
+};
 /** 채널 상태(status) → CSS 토큰 매핑 (chip 용) */
 const mapChannelStatusToCss = (
   status: string,
@@ -255,7 +263,9 @@ export default function List({ listData, onResetByDetail, canEditMemo }: ListPro
               >
                 <div className="inner">
                   <div className="topArea">
-                    <h3 className="tit">{item.title}</h3>
+                    <h3 className="tit">
+                      {item.title}{suffixByChannelIndex(item.channelIndex) ? `${suffixByChannelIndex(item.channelIndex)}` : ''}
+                    </h3>
                   </div>
                   <div className="bodyArea">
                     <ul>
@@ -281,11 +291,14 @@ export default function List({ listData, onResetByDetail, canEditMemo }: ListPro
         className="dialogCont"
         open={open}
         onClose={handleClose}
-        aria-labelledby="memo-dialog-title"
+        aria-labelledby="memo-dialog-title" transitionDuration={0}
       >
         <div className="modalWrapper dtlInfo">
           <DialogTitle className="tit" id="memo-dialog-title">
             {selectedItem?.title}
+            {suffixByChannelIndex(selectedItem?.channelIndex)
+              ? `${suffixByChannelIndex(selectedItem?.channelIndex)}`
+              : ''}
             <div className="right">
               <span className="temp">
                 {selectedItem?.temp1}

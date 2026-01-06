@@ -393,7 +393,7 @@ export default function List({ listData, canEditMemo }: ListProps) {
         })}
       </ul>
 
-      <Dialog className="dialogCont" open={open} onClose={handleClose} aria-labelledby="alert-dialog-title">
+      <Dialog className="dialogCont" open={open} onClose={handleClose} aria-labelledby="alert-dialog-title"  transitionDuration={0}>
         <div className="modalWrapper dtlInfo">
           <DialogTitle className="tit" id="alert-dialog-title">
             {selectedItem ? selectedItem.title : '메모'}

@@ -137,6 +137,15 @@ import { Dialog, DialogTitle, DialogContent, IconButton, Button } from '@mui/mat
 import CloseIcon from '@mui/icons-material/Close';
 
 // ===============================
+// ✅ Comm Error(5분 무변경) 추가 기능 - "기존 기능 영향 없이" 동작
+// ===============================
+const COMM_ERROR_MS = 5 * 60 * 1000; // 5분
+
+function nowMs() {
+  return Date.now();
+}
+
+// ===============================
 // 유틸 함수들
 // ===============================
 type MemoStatus = 'ongoing' | 'stop' | 'completion' | 'available';
@@ -166,9 +175,7 @@ function formatTemp(val?: string | null): string {
 
   const truncated1 = Math.trunc(num * 10) / 10;
 
-  const valueStr = Number.isInteger(truncated1)
-    ? String(truncated1)
-    : truncated1.toFixed(1);
+  const valueStr = Number.isInteger(truncated1) ? String(truncated1) : truncated1.toFixed(1);
 
   return `${valueStr}${unit ? '' + unit : ''}`;
 }
@@ -206,16 +213,9 @@ const STOP_STATUS_LIST = [
   'special pause',
 ];
 
-const ALARM_STATUS_LIST = [
-  'device alarm',
-  'comm error',
-  'no connected battery',
-  'disable',
-  'extern comm error',
-];
+const ALARM_STATUS_LIST = ['device alarm', 'comm error', 'no connected battery', 'disable', 'extern comm error'];
 
 const COMPLETE_STEP_LIST = ['end ok', 'end ng', 'user termination'];
-
 
 function normalizeStatusName(s?: string | null): string {
   if (!s) return '';
@@ -262,8 +262,7 @@ function toMemoStatus(ch: MonitoringItem): MemoStatus {
 }
 
 // 장비(그룹) 키: eqpid + chamberIndex
-const groupKeyOf = (eqpid: string, chamberIndex: number) =>
-  `${eqpid}__${chamberIndex || 1}`;
+const groupKeyOf = (eqpid: string, chamberIndex: number) => `${eqpid}__${chamberIndex || 1}`;
 
 type EquipGroup = {
   key: string;
@@ -274,6 +273,7 @@ type EquipGroup = {
 };
 
 // 장비(그룹) 시그니처: 값이 실제로 바뀌었는지 비교용
+// ✅ 기존 필드 유지 + (추가) stepName / time 포함 (기존 기능 영향 없음)
 function buildGroupSignature(group: EquipGroup): string {
   return group.channels
     .map((ch) => {
@@ -281,12 +281,14 @@ function buildGroupSignature(group: EquipGroup): string {
         ch.rawStatus ?? '',
         ch.status ?? '',
         ch.step ?? '',
+        ch.stepName ?? '', // ✅ 추가(서버 stepName 변동도 감지)
         ch.temp ?? '',
         ch.humidity ?? '',
         ch.voltage ?? '',
         ch.current ?? '',
         ch.power ?? '',
         ch.timestamp ?? '',
+        ch.time ?? '', // ✅ 추가(있으면 반영)
       ].join('|');
     })
     .join('||');
@@ -295,14 +297,8 @@ function buildGroupSignature(group: EquipGroup): string {
 // 🔹 CELL MonitoringItem 키 (chamber*100 + channel)
 function cellItemKey(ch: MonitoringItem): string {
   const eqpid = (ch.eqpid || ch.title || '').trim();
-  const chamber =
-    typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0
-      ? ch.chamberIndex
-      : 1;
-  const chIdx =
-    typeof ch.channelIndex === 'number' && ch.channelIndex > 0
-      ? ch.channelIndex
-      : 1;
+  const chamber = typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0 ? ch.chamberIndex : 1;
+  const chIdx = typeof ch.channelIndex === 'number' && ch.channelIndex > 0 ? ch.channelIndex : 1;
   const keyIndex = chamber * 100 + chIdx;
   return `${eqpid}#${keyIndex}`;
 }
@@ -319,8 +315,6 @@ function isJsonString(str: string): boolean {
 
 // ✅ RESET 모드
 type ResetMode = 'clear-blink' | 'complete-to-available';
-
-
 
 // 채널 신선도(freshness) 계산: timestamp → time → id 순으로 사용
 function getFreshnessScore(ch: MonitoringItem): number {
@@ -370,9 +364,6 @@ function normalizeByCoordinate(list: MonitoringItem[]): MonitoringItem[] {
       const prevScore = getFreshnessScore(prev);
       const currScore = getFreshnessScore(ch);
 
-      // 디버그 로그 필요 없으면 아래 console.log들은 지워도 됨
-      // console.log('[CELL][COORD] dup', key, 'prevScore=', prevScore, 'currScore=', currScore);
-
       // 신선도 높은 쪽만 남기기 (동점이면 새 데이터 우선)
       if (currScore >= prevScore) {
         result[existingIdx] = ch;
@@ -388,9 +379,7 @@ function normalizeByCoordinate(list: MonitoringItem[]): MonitoringItem[] {
   return result;
 }
 
-
 export default function DashboardCell() {
-
   // 🔐 로그인/권한 정보
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -403,6 +392,18 @@ export default function DashboardCell() {
   // 🔹 List2 강제 리렌더용 토큰
   const [listRenderToken, setListRenderToken] = useState(0);
   const hasForcedListRenderRef = useRef(false);
+
+  // ✅ (추가) 1분마다 tick 갱신 → "시간 경과로 comm error" 반영용 (기존 기능 영향 없음)
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const t = window.setInterval(() => setTick((v) => v + 1), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  // ✅ (추가) 장비별 마지막 변경 시각 추적 (기존 기능 영향 없음)
+  const lastChangedAtRef = useRef<Record<string, number>>({});
+  const lastSigRef = useRef<Record<string, string>>({});
 
   // 🔹 전력량은 최초 1번만 가져오고 이후엔 SSE에서 mutate로만 갱신
   const { data: todayPower, mutate: mutateToday } = useSWR<TodayPower>(
@@ -430,7 +431,8 @@ export default function DashboardCell() {
       revalidateOnFocus: false,
     },
   );
-// 🔔 월별 전력량: 매일 0시 10분 이후 최초 1번만 자동 갱신
+
+  // 🔔 월별 전력량: 매일 0시 10분 이후 최초 1번만 자동 갱신
   const lastMonthRefreshRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -445,11 +447,7 @@ export default function DashboardCell() {
       const todayStr = `${y}-${m}-${d}`;
 
       // 0시 10분 이후 & 오늘 아직 갱신 안 했으면 한 번만 실행
-      if (
-        now.getHours() === 0 &&
-        now.getMinutes() >= 10 &&
-        lastMonthRefreshRef.current !== todayStr
-      ) {
+      if (now.getHours() === 0 && now.getMinutes() >= 10 && lastMonthRefreshRef.current !== todayStr) {
         console.info('[CELL] auto month power refresh at 00:10', todayStr);
         mutateMonth();
         lastMonthRefreshRef.current = todayStr;
@@ -458,6 +456,7 @@ export default function DashboardCell() {
 
     return () => clearInterval(timer);
   }, [mutateMonth]);
+
   // 1) CELL 목록 로딩 (초기 전체 리스트)
   const { data, error, mutate } = useSWR<MonitoringItem[]>(LIST_API, fetcher, {
     refreshInterval: 0,
@@ -478,11 +477,9 @@ export default function DashboardCell() {
   const loading = !effectiveData.length && !error;
 
   // ✅ 장비별 RESET 상태
-  const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>(
-    {},
-  );
+  const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>({});
 
-  // ✅ 이전 장비 스냅샷 시그니처
+  // ✅ 이전 장비 스냅샷 시그니처 (기존 RESET 해제용)
   const lastGroupSignRef = useRef<Record<string, string>>({});
 
   // 2) SSE – DELTA 받아서 items merge, 전력량은 mutate로 재조회
@@ -529,7 +526,7 @@ export default function DashboardCell() {
           // 예: "alarm-updated:CELL" 형태면 CELL 관련으로 판단
           if (trimmed.endsWith(':CELL')) {
             mutate();
-            mutateToday();   // ✅ 오늘 전력량만 갱신
+            mutateToday(); // ✅ 오늘 전력량만 갱신
           }
           return;
         }
@@ -541,7 +538,7 @@ export default function DashboardCell() {
           // 1) 배열 형태 전체 리스트
           if (Array.isArray(payload)) {
             setItems(payload as MonitoringItem[]);
-            mutateToday();   // ✅ here도 today만
+            mutateToday(); // ✅ here도 today만
             return;
           }
 
@@ -577,7 +574,7 @@ export default function DashboardCell() {
               return Array.from(map.values());
             });
 
-            mutateToday();   // ✅ today만
+            mutateToday(); // ✅ today만
             return;
           }
 
@@ -592,21 +589,14 @@ export default function DashboardCell() {
           if (!typeField || typeField === 'CELL') {
             console.debug('[CELL SSE] unsupported JSON shape → mutate():', payload);
             mutate();
-            mutateToday();   // ✅ today만
+            mutateToday(); // ✅ today만
           } else {
-            console.debug(
-              '[CELL SSE] unsupported JSON but type is not CELL, ignore:',
-              typeField,
-            );
+            console.debug('[CELL SSE] unsupported JSON but type is not CELL, ignore:', typeField);
           }
         } catch (err) {
-          console.error(
-            '[CELL SSE] JSON parse error → mutate() fallback:',
-            err,
-            dataText,
-          );
+          console.error('[CELL SSE] JSON parse error → mutate() fallback:', err, dataText);
           mutate();
-          mutateToday();     // ✅ today만
+          mutateToday(); // ✅ today만
         }
       };
 
@@ -633,8 +623,7 @@ export default function DashboardCell() {
       if (es) es.close();
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [mutate, mutateToday]);   // ✅ mutateMonth는 여기서 안 건드림
-
+  }, [mutate, mutateToday]); // ✅ mutateMonth는 여기서 안 건드림
 
   // 3) 검색
   const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
@@ -646,7 +635,7 @@ export default function DashboardCell() {
     if (!effectiveData.length) return [];
 
     // ✅ PACK 처럼 좌표 기준 최신 데이터만 남기기
-   // const src = normalizeByCoordinate(effectiveData);
+    // const src = normalizeByCoordinate(effectiveData);
     const src = effectiveData;
     const map = new Map<string, EquipGroup>();
 
@@ -654,10 +643,7 @@ export default function DashboardCell() {
       const eqpid = (ch.eqpid || ch.title || '').trim();
       if (!eqpid) continue;
 
-      const cIndex =
-        typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0
-          ? ch.chamberIndex
-          : 1;
+      const cIndex = typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0 ? ch.chamberIndex : 1;
 
       const key = `${eqpid}_${cIndex}`;
       let g = map.get(key);
@@ -680,7 +666,7 @@ export default function DashboardCell() {
     });
   }, [effectiveData]);
 
-  // ✅ equipGroups 변경 시, 값이 실제로 바뀐 장비만 RESET 해제
+  // ✅ equipGroups 변경 시, 값이 실제로 바뀐 장비만 RESET 해제 (기존 그대로)
   useEffect(() => {
     if (!equipGroups.length) return;
 
@@ -709,6 +695,37 @@ export default function DashboardCell() {
     }
 
     lastGroupSignRef.current = newSigns;
+  }, [equipGroups]);
+
+  // ✅ (추가) Comm Error용 "마지막 변경 시각" 추적
+  // - 기존 기능(RESET해제 등)과 분리된 ref라 영향 없음
+  useEffect(() => {
+    if (!equipGroups.length) return;
+
+    const now = nowMs();
+
+    for (const g of equipGroups) {
+      const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
+      const sig = buildGroupSignature(g);
+
+      const prevSig = lastSigRef.current[gKey];
+      if (!prevSig) {
+        // 최초 진입: 지금 시각으로 초기화
+        lastSigRef.current[gKey] = sig;
+        lastChangedAtRef.current[gKey] = now;
+        continue;
+      }
+
+      if (prevSig !== sig) {
+        // 변화 감지: 시그니처 갱신 + 변경 시각 갱신
+        lastSigRef.current[gKey] = sig;
+        lastChangedAtRef.current[gKey] = now;
+      } else {
+        // 변화 없음: lastChangedAtRef는 그대로 유지
+        // (없을 경우만 방어적으로 채움)
+        if (!lastChangedAtRef.current[gKey]) lastChangedAtRef.current[gKey] = now;
+      }
+    }
   }, [equipGroups]);
 
   // ===============================
@@ -742,9 +759,7 @@ export default function DashboardCell() {
             testNames.some((t) => t.includes(kw)),
         );
 
-      const withChamber = group.channels.find(
-        (c) => (c.temp && c.temp !== '-') || c.chamberStatus,
-      );
+      const withChamber = group.channels.find((c) => (c.temp && c.temp !== '-') || c.chamberStatus);
       const rep = withChamber ?? group.channels[0];
 
       let runCnt = 0;
@@ -787,8 +802,6 @@ export default function DashboardCell() {
       const totalChannels = group.channels.length || 1;
       const allComplete = completeCnt === totalChannels;
 
-
-
       const groupHasAlarms = group.channels.some((ch) => {
         if (typeof ch.alarmCount === 'number') {
           return ch.alarmCount > 0;
@@ -804,9 +817,8 @@ export default function DashboardCell() {
       let icon: ListItem['icon'] = 'stay';
       let operation: ListItem['operation'] = 'available';
 
-      console.log("status => totalChannels" + totalChannels);
-      console.log("status => allComplete" + allComplete);
-
+      console.log('status => totalChannels' + totalChannels);
+      console.log('status => allComplete' + allComplete);
 
       if (anyAlarm || anyStop) {
         operation = 'stop';
@@ -846,12 +858,27 @@ export default function DashboardCell() {
 
       let finalOperation = operation;
       let finalShutdown = shutdown;
+      let finalIcon: ListItem['icon'] = icon;
 
-      if (resetMode === 'clear-blink' && shutdown) {
+      // ✅ (추가) Comm Error 판단 (5분 이상 변화 없음)
+      // - 기존 카운트(ch1/ch2/ch3), memoText, 검색 등 "변경 없음"
+      const lastChangedAt = lastChangedAtRef.current[gKey] ?? 0;
+      const isCommError = lastChangedAt > 0 && nowMs() - lastChangedAt >= COMM_ERROR_MS;
+
+      // ✅ Comm Error가 되면 "표시만" stop/error/shutdown으로 강제
+      // (단, resetMode가 clear-blink로 shutdown 해제하는 기존 기능은 그대로 존중)
+      if (isCommError) {
+        finalOperation = 'stop';
+        finalShutdown = true;
+        finalIcon = 'error';
+      }
+
+      // ✅ 기존 RESET 동작 유지 (기존 로직 그대로)
+      if (resetMode === 'clear-blink' && finalShutdown) {
         finalShutdown = false;
       }
 
-      if (resetMode === 'complete-to-available' && operation === 'completion') {
+      if (resetMode === 'complete-to-available' && finalOperation === 'completion') {
         finalOperation = 'available';
       }
 
@@ -898,12 +925,12 @@ export default function DashboardCell() {
         ready,
         shutdown: finalShutdown,
         operation: finalOperation,
-        icon,
+        icon: finalIcon,
         temp1,
         temp2,
         ch1: runCnt,
-        ch2: alarmCnt + stopCnt,
-        ch3: completeCnt + idleCnt + readyCnt,
+        ch2: alarmCnt + stopCnt, // ✅ 기존 그대로 (CommError로 숫자 바꾸지 않음)
+        ch3: completeCnt + idleCnt + readyCnt, // ✅ 기존 그대로
         memo: !!memoText.length,
         memoText,
         memoTotal,
@@ -911,26 +938,20 @@ export default function DashboardCell() {
         channelIndex: memoChannelIndex,
       };
     });
-  }, [equipGroups, searchKeywords, resetTargets]);
+    // ✅ tick 추가: 시간 경과로 comm error 표시 갱신 (기존 기능 영향 없음)
+  }, [equipGroups, searchKeywords, resetTargets, tick]);
 
   // ===============================
   // 6) 상단 차트용 집계 + 전력량 스케일링(W/kW/MW)
   // ===============================
-  const {
-    runningChart,
-    opDistChart,
-    status4Chart,
-    todayChart,
-    monthChart,
-    stepChart,          // ✅ 추가
-  } = useMemo(() => {
+  const { runningChart, opDistChart, status4Chart, todayChart, monthChart, stepChart } = useMemo(() => {
     // ---------------------------
     // (1) 장비 가동률 / 상태
     // ---------------------------
     let runningChart = { total: 0, running: 0 };
     let opDistChart: { name: string; value: number }[] = [];
     let status4Chart: { name: string; value: number }[] = [];
-    let stepChart: { name: string; value: number }[] = [];   // ✅ 추가
+    let stepChart: { name: string; value: number }[] = [];
 
     if (equipGroups.length) {
       const totalEquip = equipGroups.length;
@@ -940,8 +961,7 @@ export default function DashboardCell() {
         const modes = g.channels.map(getChannelMode);
         const anyAlarm = modes.includes('alarm');
         const anyRun = modes.includes('run');
-        const allComplete =
-          modes.length > 0 && modes.every((m) => m === 'complete');
+        const allComplete = modes.length > 0 && modes.every((m) => m === 'complete');
 
         if (!anyAlarm && anyRun && !allComplete) {
           runningEquip++;
@@ -998,13 +1018,12 @@ export default function DashboardCell() {
       }));
 
       // 🔹 상태 4분류 분포
-      const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> =
-        {
-          대기: 0,
-          진행중: 0,
-          일시정지: 0,
-          알람: 0,
-        };
+      const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
+        대기: 0,
+        진행중: 0,
+        일시정지: 0,
+        알람: 0,
+      };
 
       for (const ch of allChannels) {
         const mode = getChannelMode(ch);
@@ -1034,7 +1053,7 @@ export default function DashboardCell() {
 
       runningChart = { total: totalEquip, running: runningEquip };
 
-      // 🔹 NEW: stepName 분포 → 상위 6개
+      // 🔹 stepName 분포 → 상위 6개 (✅ 기존 그대로)
       const stepBuckets: Record<string, number> = {};
 
       for (const ch of allChannels) {
@@ -1042,13 +1061,11 @@ export default function DashboardCell() {
         const raw = (ch.stepName ?? ch.step ?? '').trim();
         if (!raw) continue;
 
-        const name = raw; // 필요하면 여기서 포맷팅 가능
+        const name = raw;
         stepBuckets[name] = (stepBuckets[name] ?? 0) + 1;
       }
 
-      const sortedSteps = Object.entries(stepBuckets).sort(
-        (a, b) => b[1] - a[1],
-      );
+      const sortedSteps = Object.entries(stepBuckets).sort((a, b) => b[1] - a[1]);
 
       const TOP_N = 6;
       stepChart = sortedSteps.slice(0, TOP_N).map(([name, value]) => ({
@@ -1063,15 +1080,11 @@ export default function DashboardCell() {
     const todayChargeRaw = todayPower?.charge ?? 0;
     const todayDisRaw = Math.abs(todayPower?.discharge ?? 0);
 
-    const maxTodayAbs = Math.max(
-      Math.abs(todayChargeRaw),
-      Math.abs(todayDisRaw),
-    );
+    const maxTodayAbs = Math.max(Math.abs(todayChargeRaw), Math.abs(todayDisRaw));
 
     const { unit: todayUnit } = scalePower(maxTodayAbs || 0);
 
-    const todayDivisor =
-      todayUnit === 'MWh' ? 1_000_000 : todayUnit === 'kWh' ? 1_000 : 1;
+    const todayDivisor = todayUnit === 'MWh' ? 1_000_000 : todayUnit === 'kWh' ? 1_000 : 1;
 
     const todayData = [
       {
@@ -1098,15 +1111,12 @@ export default function DashboardCell() {
     }
 
     const { unit: monthUnit } = scalePower(maxMonthAbs || 0);
-    const monthDivisor =
-      monthUnit === 'MWh' ? 1_000_000 : monthUnit === 'kWh' ? 1_000 : 1;
+    const monthDivisor = monthUnit === 'MWh' ? 1_000_000 : monthUnit === 'kWh' ? 1_000 : 1;
 
     const monthData = monthRows.map((row) => ({
       name: row.month ?? '-',
       charge: Number(((row.charge ?? 0) / monthDivisor).toFixed(1)),
-      discharge: Number(
-        (Math.abs(row.discharge ?? 0) / monthDivisor).toFixed(1),
-      ),
+      discharge: Number((Math.abs(row.discharge ?? 0) / monthDivisor).toFixed(1)),
     }));
 
     return {
@@ -1121,7 +1131,7 @@ export default function DashboardCell() {
         data: monthData,
         unit: monthUnit as PowerUnit,
       },
-      stepChart,   // ✅ 추가
+      stepChart,
     };
   }, [equipGroups, todayPower, monthPower]);
 
@@ -1156,11 +1166,7 @@ export default function DashboardCell() {
       <section className="topState">
         <h2 className="ir">상단 기능 화면</h2>
         <div className="left">
-          <ChartRunning
-            title="장비가동률"
-            total={runningChart.total}
-            running={runningChart.running}
-          />
+          <ChartRunning title="장비가동률" total={runningChart.total} running={runningChart.running} />
           <ChartState title="장비현황" data={stepChart} />
           <ChartOperation title="장비가동현황" data={status4Chart} />
           <Button className="btnZoom" onClick={() => setIsZoomOpen(true)}>
@@ -1171,20 +1177,12 @@ export default function DashboardCell() {
           <TopStateCenter equipType="CELL" />
         </div>
         <div className="right">
-          <ChartToday
-            title="오늘 전력량"
-            data={todayChart.data}
-            unit={todayChart.unit}
-          />
+          <ChartToday title="오늘 전력량" data={todayChart.data} unit={todayChart.unit} />
           <ul className="legend">
             <li className="charge">충전</li>
             <li>방전</li>
           </ul>
-          <ChartMonth
-            title="월별 전력량"
-            data={monthChart.data}
-            unit={monthChart.unit}
-          />
+          <ChartMonth title="월별 전력량" data={monthChart.data} unit={monthChart.unit} />
         </div>
       </section>
 
@@ -1221,11 +1219,7 @@ export default function DashboardCell() {
                 const totalChannels = g.channels.length || 1;
                 const allComplete = completeCnt === totalChannels;
 
-
-
-
-                const blinkNonAlarm =
-                  !anyAlarm && anyRun && completeCnt > 0 && !allComplete;
+                const blinkNonAlarm = !anyAlarm && anyRun && completeCnt > 0 && !allComplete;
 
                 const k = groupKeyOf(g.eqpid, g.chamberIndex);
 
@@ -1253,7 +1247,6 @@ export default function DashboardCell() {
               key={listRenderToken}
               listData={uiList}
               canEditMemo={canEditMemo}
-
               onResetByDetail={(item) => {
                 if (!item.eqpid) return;
                 const chamberIndex = item.channelIndex ?? 1;
@@ -1277,11 +1270,7 @@ export default function DashboardCell() {
       </section>
 
       {/* chart zoom dialog */}
-      <Dialog
-        className="dialogCont wide"
-        open={isZoomOpen}
-        onClose={() => setIsZoomOpen(false)}
-      >
+      <Dialog className="dialogCont wide" open={isZoomOpen} onClose={() => setIsZoomOpen(false)}>
         <div className="modalWrapper chartZoom">
           <DialogTitle className="tit">
             <span></span>
@@ -1293,11 +1282,7 @@ export default function DashboardCell() {
           <DialogContent className="contents">
             <div className="topState">
               <div className="left">
-                <ChartRunning
-                  title="장비가동률"
-                  total={runningChart.total}
-                  running={runningChart.running}
-                />
+                <ChartRunning title="장비가동률" total={runningChart.total} running={runningChart.running} />
                 <ChartState2 title="장비현황" data={stepChart} />
                 <ChartOperation2 title="장비가동현황" data={status4Chart} />
               </div>
@@ -1307,11 +1292,7 @@ export default function DashboardCell() {
       </Dialog>
 
       {/* card zoom dialog */}
-      <Dialog
-        className="dialogCont full"
-        open={isZoomOpen2}
-        onClose={() => setIsZoomOpen2(false)}
-      >
+      <Dialog className="dialogCont full" open={isZoomOpen2} onClose={() => setIsZoomOpen2(false)}>
         <div className="modalWrapper chartZoom">
           <DialogTitle className="tit">
             <span></span>
@@ -1338,7 +1319,6 @@ export default function DashboardCell() {
                   key={listRenderToken}
                   listData={uiList}
                   canEditMemo={canEditMemo}
-
                   onResetByDetail={(item) => {
                     if (!item.eqpid) return;
                     const chamberIndex = item.channelIndex ?? 1;

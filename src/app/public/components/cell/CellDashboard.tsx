@@ -217,6 +217,49 @@ const ALARM_STATUS_LIST = ['device alarm', 'comm error', 'no connected battery',
 
 const COMPLETE_STEP_LIST = ['end ok', 'end ng', 'user termination'];
 
+function normalizeChamberStatus(s?: string | null): string {
+  return (s ?? '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+
+// chamberStatus만으로 icon 결정
+function iconFromChamberStatus(status?: string | null): ListItem['icon'] {
+  const cs = normalizeChamberStatus(status);
+
+  // ✅ 알람/에러 계열
+  // (프로젝트에서 실제로 내려오는 값에 맞춰 키워드만 추가/삭제하면 됨)
+  if (
+    cs.includes('alarm') ||
+    cs.includes('error') ||
+    cs.includes('fault') ||
+    cs.includes('comm') ||
+    cs.includes('ng') ||
+    cs.includes('disconnect')
+  ) {
+    return 'error';
+  }
+
+  // ✅ 진행/운전 계열
+  if (
+    cs.includes('run') ||
+    cs.includes('running') ||
+    cs.includes('progress') ||
+    cs.includes('working') ||
+    cs.includes('charging') ||
+    cs.includes('discharging') ||
+    cs.includes('start')
+  ) {
+    return 'success';
+  }
+
+  // ✅ 그 외는 대기(stay)
+  return 'stay';
+}
+
 function normalizeStatusName(s?: string | null): string {
   if (!s) return '';
   return s
@@ -814,7 +857,13 @@ export default function DashboardCell() {
 
       let ready = false;
       let shutdown = false;
-      let icon: ListItem['icon'] = 'stay';
+
+      const chamberStatusRaw =
+        (group.channels.find((c) => c.chamberStatus && String(c.chamberStatus).trim())?.chamberStatus) ??
+        rep.chamberStatus ??
+        null;
+
+      let icon: ListItem['icon'] = iconFromChamberStatus(chamberStatusRaw);
       let operation: ListItem['operation'] = 'available';
 
       console.log('status => totalChannels' + totalChannels);
@@ -822,7 +871,7 @@ export default function DashboardCell() {
 
       if (anyAlarm || anyStop) {
         operation = 'stop';
-        icon = 'error';
+        //icon = 'error';
 
         if (anyAlarm && groupHasAlarms) {
           shutdown = true;
@@ -831,7 +880,7 @@ export default function DashboardCell() {
         }
       } else if (anyRun) {
         operation = 'ongoing';
-        icon = 'success';
+       // icon = 'success';
 
         if (anyComplete) {
           shutdown = true;
@@ -840,16 +889,16 @@ export default function DashboardCell() {
         }
       } else if (allComplete) {
         operation = 'completion';
-        icon = 'stay';
+       // icon = 'stay';
         shutdown = false;
       } else if (anyReady && !anyRun && !anyAlarm && !anyComplete && !anyStop) {
         operation = 'available';
         ready = false;
-        icon = 'stay';
+      //  icon = 'stay';
         shutdown = false;
       } else {
         operation = 'available';
-        icon = 'success';
+     //   icon = 'success';
         shutdown = false;
       }
 

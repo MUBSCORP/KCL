@@ -56,9 +56,10 @@ type ResetMode = 'clear-blink' | 'complete-to-available';
 // 🔹 장비(그룹) 키: eqpid + chamberIndex
 const groupKeyOf = (eqpid: string, chamberIndex: number) => `${eqpid}__${chamberIndex || 1}`;
 
-// ✅ 5분 이상 변화 없으면 comm error 로 강제 표기
+// ✅ 5분 이상 신호(=SSE 수신) 없으면 comm error 로 강제 표기
 const COMM_ERROR_MS = 5 * 60 * 1000;
 const COMM_ERROR_STEP = 'Comm Error';
+
 function nowMs() {
   return Date.now();
 }
@@ -338,6 +339,135 @@ type EquipGroup = {
   channels: MonitoringItem[];
 };
 
+// ===============================
+// SSE payload → MonitoringItem[] 추출 (델타 + 원문 PACK 지원)
+// ===============================
+function extractPackItemsFromSsePayload(payload: any): MonitoringItem[] {
+  if (!payload) return [];
+
+  // 1) 델타 포맷
+  if (payload.kind === 'MONITORING_DELTA' && String(payload.type || '').toUpperCase() === 'PACK') {
+    const items = payload.items;
+    return Array.isArray(items) ? (items as MonitoringItem[]) : [];
+  }
+
+  // 2) 원문 PACK(v0.1) 포맷
+  const typeField =
+    typeof payload.Type === 'string'
+      ? payload.Type.toUpperCase()
+      : typeof payload.type === 'string'
+        ? payload.type.toUpperCase()
+        : '';
+
+  if (typeField && typeField !== 'PACK') return [];
+
+  const eqpid = String(payload.EQPID || payload.eqpid || '').trim();
+  const chs = payload.ChannelDatas;
+
+  if (!eqpid || !Array.isArray(chs) || chs.length === 0) return [];
+
+  const ts = typeof payload.Timestamp === 'string' ? payload.Timestamp : '';
+
+  return chs.map((c: any, idx: number) => {
+    const chamberIndex = Number(c?.ChamberIndex ?? 1) || 1;
+    const channelIndex = Number(c?.ChannelIndex ?? 0) || 0;
+    const info = c?.Info || {};
+    const measure = c?.Measure || {};
+
+    // NOTE: 원문은 MonitoringItem 완전 변환이 목적이 아니라,
+    //       "키(eqpid/chamberIndex/channelIndex) + 일부 표시필드"만 채우고
+    //       캐시 merge 시 기존값을 유지하도록 처리한다.
+    return {
+      id: Number(c?.id ?? c?.Id ?? idx),
+      title: eqpid,
+      eqpid,
+      chamberIndex,
+      channelIndex,
+
+      time: ts,
+
+      schedule: info?.ScheduleName ?? '',
+      testName: info?.TestName ?? '',
+      stepName: info?.StepName ?? '',
+      stepNo: info?.StepNo,
+      totalSteps: info?.TotalStepCount,
+
+      status: info?.Status ? String(info.Status).toLowerCase() : '',
+      rawStatus: info?.Status ? String(info.Status).toLowerCase() : '',
+
+      voltage: measure?.Voltage != null ? String(measure.Voltage) : '',
+      current: measure?.Current != null ? String(measure.Current) : '',
+      power: measure?.Power != null ? String(measure.Power) : '',
+
+      // 타입 필수 필드 채움(빈 값들은 merge에서 old 유지되도록 방어)
+      check: false,
+      memo: false,
+      memoText: '',
+      operation: '',
+      statusLabel: '',
+      step: '',
+      cycle: '',
+      rly: '',
+      temp: '',
+      humidity: '',
+      cycles: 0,
+      activeCycles: 0,
+      x: 0,
+      y: 0,
+    } as MonitoringItem;
+  });
+}
+
+// ===============================
+// SWR 캐시 merge 유틸 (부분 병합)
+// ===============================
+const itemKeyOf = (it: MonitoringItem) =>
+  `${(it.eqpid || '').trim()}__${it.chamberIndex || 1}__${it.channelIndex || 0}`;
+
+function mergePackItems(prev: MonitoringItem[] | undefined, incoming: MonitoringItem[]): MonitoringItem[] {
+  const base = Array.isArray(prev) ? [...prev] : [];
+  if (!incoming.length) return base;
+
+  const index = new Map<string, number>();
+  for (let i = 0; i < base.length; i++) index.set(itemKeyOf(base[i]), i);
+
+  for (const inc of incoming) {
+    const k = itemKeyOf(inc);
+    const at = index.get(k);
+
+    if (at == null) {
+      index.set(k, base.length);
+      base.push(inc);
+      continue;
+    }
+
+    const old = base[at];
+
+    // ✅ undefined/빈문자열로 기존값 덮어쓰지 않도록 방어적으로 merge
+    const merged: MonitoringItem = {
+      ...old,
+      ...inc,
+      eqpid: inc.eqpid || old.eqpid,
+      chamberIndex: inc.chamberIndex ?? old.chamberIndex,
+      channelIndex: inc.channelIndex ?? old.channelIndex,
+
+      time: inc.time || old.time,
+      schedule: inc.schedule || old.schedule,
+      testName: inc.testName || old.testName,
+      stepName: inc.stepName || old.stepName,
+      status: inc.status || old.status,
+      rawStatus: inc.rawStatus || old.rawStatus,
+      voltage: inc.voltage || old.voltage,
+      current: inc.current || old.current,
+      power: inc.power || old.power,
+    };
+
+    base[at] = merged;
+  }
+
+  return base;
+}
+
 export default function DashboardPack() {
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -351,10 +481,11 @@ export default function DashboardPack() {
 
   const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>({});
 
-  // ✅ 그룹별 마지막 변경 시각 기록 (eqpid__chamberIndex -> ms)
-  const lastChangeRef = useRef<Record<string, number>>({});
-  // ✅ 그룹별 signature(변경 감지용)
-  const lastSigRef = useRef<Record<string, string>>({});
+  // ✅ 장비(그룹)별 마지막 SSE 수신 시각 기록 (eqpid__chamberIndex -> ms)
+  const lastSeenRef = useRef<Record<string, number>>({});
+  // ✅ 최초 LIST 스냅샷 기준으로만 lastSeen을 "초기값" 세팅 (딱 1회)
+  const hasInitSeenFromListRef = useRef(false);
+
   // ✅ 시간 경과로 comm error 전환 반영용 tick (1분마다 갱신)
   const [tick, setTick] = useState(0);
 
@@ -443,6 +574,37 @@ export default function DashboardPack() {
     return () => clearInterval(timer);
   }, [mutateMonth]);
 
+  // ✅ 최초 LIST 스냅샷 기반으로 lastSeen 초기값만 1회 세팅
+  // (LIST 재조회 성공을 "신호"로 취급하면 안 되므로, 최초 1회만)
+  useEffect(() => {
+    if (!listData || !listData.length) return;
+    if (hasInitSeenFromListRef.current) return;
+
+    const map: Record<string, number> = {};
+    const now = nowMs();
+
+    for (const it of listData) {
+      const eqpid = (it.eqpid || it.title || '').trim();
+      if (!eqpid) continue;
+
+      const chamberIndex = typeof it.chamberIndex === 'number' && it.chamberIndex > 0 ? it.chamberIndex : 1;
+      const gKey = groupKeyOf(eqpid, chamberIndex);
+
+      let t = 0;
+      if (it.time) {
+        const parsed = Date.parse(it.time);
+        if (!Number.isNaN(parsed)) t = parsed;
+      }
+      if (!t) t = now;
+
+      map[gKey] = Math.max(map[gKey] || 0, t);
+    }
+
+    lastSeenRef.current = { ...lastSeenRef.current, ...map };
+    hasInitSeenFromListRef.current = true;
+  }, [listData]);
+
+  // ✅ SSE: "수신된 장비만" lastSeen 갱신 + SWR 캐시 부분 병합 (mutate 재조회 금지)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -460,8 +622,9 @@ export default function DashboardPack() {
 
       es.onopen = () => {
         console.info('[PACK SSE] connected:', SSE_URL);
-        mutate();
-        mutateToday();
+
+        // ❌ 연결 성공 / LIST 재조회는 "신호"로 취급하면 안 됨
+        // mutate();
 
         if (retryTimer) {
           clearTimeout(retryTimer);
@@ -475,27 +638,27 @@ export default function DashboardPack() {
 
         try {
           const payload = JSON.parse(dataText);
+          const items = extractPackItemsFromSsePayload(payload);
+          if (!items.length) return;
 
-          if (payload?.kind === 'MONITORING_DELTA' && payload?.type === 'PACK') {
-            mutate();
-            mutateToday();
-            return;
+          const now = nowMs();
+
+          // ✅ "SSE로 실제 장비 데이터가 왔을 때만" 장비 단위 lastSeen 갱신
+          for (const it of items) {
+            const eqpid = (it.eqpid || '').trim();
+            if (!eqpid) continue;
+            const chamberIndex = typeof it.chamberIndex === 'number' && it.chamberIndex > 0 ? it.chamberIndex : 1;
+            const gKey = groupKeyOf(eqpid, chamberIndex);
+            lastSeenRef.current[gKey] = now;
           }
 
-          const typeField =
-            typeof payload.Type === 'string'
-              ? payload.Type.toUpperCase()
-              : typeof payload.type === 'string'
-                ? payload.type.toUpperCase()
-                : null;
+          // ✅ LIST 재조회 없이 SWR 캐시 부분 병합
+          mutate((prev) => mergePackItems(prev as any, items), false);
 
-          if (!typeField || typeField === 'PACK') {
-            mutate();
-            mutateToday();
-          }
-        } catch {
-          mutate();
+          // ✅ 전력량은 "신호 수신 시" 갱신은 OK (원하면 제거 가능)
           mutateToday();
+        } catch {
+          // 파싱 실패는 신호로 보지 않음(= lastSeen 갱신 X)
         }
       };
 
@@ -548,44 +711,10 @@ export default function DashboardPack() {
       return a.eqpid.localeCompare(b.eqpid);
     });
 
-    // ✅ 그룹별 변경 감지(signature) + lastChange 갱신
-    const now = nowMs();
-
-    for (const g of groups) {
-      const k = groupKeyOf(g.eqpid, g.chamberIndex);
-
-      // "변경"으로 판단할 필드들(필요하면 추가/삭제 가능)
-      const sig = g.channels
-        .map((ch) =>
-          [
-            ch.channelIndex ?? ch.chamberIndex ?? '',
-            ch.time ?? '',
-            ch.status ?? '',
-            ch.statusLabel ?? '',
-            ch.operation ?? '',
-            ch.step ?? '',
-            ch.stepName ?? '',
-            ch.voltage ?? '',
-            ch.current ?? '',
-            ch.power ?? '',
-            ch.alarmCount ?? '',
-            ch.hasAlarms ? '1' : '0',
-          ].join('|'),
-        )
-        .join('||');
-
-      if (lastSigRef.current[k] !== sig) {
-        lastSigRef.current[k] = sig;
-        lastChangeRef.current[k] = now;
-      } else {
-        if (!lastChangeRef.current[k]) lastChangeRef.current[k] = now;
-      }
-    }
-
     return groups;
   }, [listData]);
 
-  // ✅ RESET 자동 해제 (핵심)
+  // ✅ RESET 자동 해제 (기존 로직 유지)
   useEffect(() => {
     if (!equipGroups.length) return;
 
@@ -675,9 +804,9 @@ export default function DashboardPack() {
       let finalOperation = uiOperation;
       let finalShutdown = uiShutdown;
 
-      // ✅ 5분 이상 데이터 변화 없음 → comm error로 강제
-      const lastChanged = lastChangeRef.current[gKey] ?? 0;
-      const isCommError = lastChanged > 0 && (nowMs() - lastChanged) >= COMM_ERROR_MS;
+      // ✅ 5분 이상 "SSE 수신 없음" → comm error로 강제
+      const lastSeen = lastSeenRef.current[gKey] ?? 0;
+      const isCommError = lastSeen > 0 && nowMs() - lastSeen >= COMM_ERROR_MS;
 
       if (isCommError) {
         finalOperation = 'stop';
@@ -696,13 +825,9 @@ export default function DashboardPack() {
       }
 
       // ✅ RESET으로 available로 바뀐 경우 라벨/상태도 같이 대기로
-      const overrideStatusLabel = isCommError
-        ? '알람'
-        : (resetCompleteToAvailable ? '대기' : rep.statusLabel);
+      const overrideStatusLabel = isCommError ? '알람' : resetCompleteToAvailable ? '대기' : rep.statusLabel;
 
-      const overrideStatus = isCommError
-        ? 'alarm'
-        : (resetCompleteToAvailable ? 'rest' : rep.status);
+      const overrideStatus = isCommError ? 'alarm' : resetCompleteToAvailable ? 'rest' : rep.status;
 
       const rawOperation = (rep.rawStatus ?? rep.operation ?? '').trim();
       const isPowerSharing = rawOperation === 'Power sharing';
@@ -773,18 +898,16 @@ export default function DashboardPack() {
     for (const g of equipGroups) {
       const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
 
-      const lastChanged = lastChangeRef.current[gKey] ?? 0;
-      const isCommError = lastChanged > 0 && (nowMs() - lastChanged) >= COMM_ERROR_MS;
+      const lastSeen = lastSeenRef.current[gKey] ?? 0;
+      const isCommError = lastSeen > 0 && nowMs() - lastSeen >= COMM_ERROR_MS;
 
       // runningChart
       if (!isCommError) {
         const { uiOperation } = calcGroupState(g.channels);
         if (uiOperation === 'ongoing') runningEquip++;
-      } else {
-        // comm error면 running에 포함하지 않음
       }
 
-      // status chart (장비현황/가동현황)
+      // status chart
       if (isCommError) {
         statusBuckets['알람'] += 1;
       } else {
@@ -796,7 +919,7 @@ export default function DashboardPack() {
         else statusBuckets['대기'] += 1;
       }
 
-      // stepName chart (Top N): comm error면 Comm Error로 +1
+      // stepName chart
       if (isCommError) {
         stepBuckets[COMM_ERROR_STEP] = (stepBuckets[COMM_ERROR_STEP] ?? 0) + 1;
       } else {

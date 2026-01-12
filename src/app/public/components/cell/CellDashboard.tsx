@@ -137,9 +137,9 @@ import { Dialog, DialogTitle, DialogContent, IconButton, Button } from '@mui/mat
 import CloseIcon from '@mui/icons-material/Close';
 
 // ===============================
-// ✅ Comm Error(5분 무변경) 추가 기능 - "기존 기능 영향 없이" 동작
+// ✅ Comm Error(장비별 SSE 신호 5분 무수신) - 기존 기능 영향 없이 "표시만" 강제
 // ===============================
-const COMM_ERROR_MS = 5 * 60 * 1000; // 5분
+const COMM_ERROR_MS = 60 * 1000; // 5분  (원본 주석 그대로 유지)
 
 function nowMs() {
   return Date.now();
@@ -225,13 +225,11 @@ function normalizeChamberStatus(s?: string | null): string {
     .replace(/\s+/g, ' ');
 }
 
-
 // chamberStatus만으로 icon 결정
 function iconFromChamberStatus(status?: string | null): ListItem['icon'] {
   const cs = normalizeChamberStatus(status);
 
   // ✅ 알람/에러 계열
-  // (프로젝트에서 실제로 내려오는 값에 맞춰 키워드만 추가/삭제하면 됨)
   if (
     cs.includes('alarm') ||
     cs.includes('error') ||
@@ -297,7 +295,6 @@ function getChannelMode(ch: MonitoringItem): ChannelMode {
 function toMemoStatus(ch: MonitoringItem): MemoStatus {
   const mode = getChannelMode(ch);
 
-  // 🔁 완료도 대기(available) 쪽으로 합산
   if (mode === 'complete') return 'completion';
   if (mode === 'run') return 'ongoing';
   if (mode === 'stop' || mode === 'alarm') return 'stop';
@@ -315,8 +312,7 @@ type EquipGroup = {
   channels: MonitoringItem[];
 };
 
-// 장비(그룹) 시그니처: 값이 실제로 바뀌었는지 비교용
-// ✅ 기존 필드 유지 + (추가) stepName / time 포함 (기존 기능 영향 없음)
+// 장비(그룹) 시그니처: 값이 실제로 바뀌었는지 비교용 (RESET 해제용 유지)
 function buildGroupSignature(group: EquipGroup): string {
   return group.channels
     .map((ch) => {
@@ -324,14 +320,14 @@ function buildGroupSignature(group: EquipGroup): string {
         ch.rawStatus ?? '',
         ch.status ?? '',
         ch.step ?? '',
-        ch.stepName ?? '', // ✅ 추가(서버 stepName 변동도 감지)
+        ch.stepName ?? '',
         ch.temp ?? '',
         ch.humidity ?? '',
         ch.voltage ?? '',
         ch.current ?? '',
         ch.power ?? '',
         ch.timestamp ?? '',
-        ch.time ?? '', // ✅ 추가(있으면 반영)
+        ch.time ?? '',
       ].join('|');
     })
     .join('||');
@@ -361,24 +357,20 @@ type ResetMode = 'clear-blink' | 'complete-to-available';
 
 // 채널 신선도(freshness) 계산: timestamp → time → id 순으로 사용
 function getFreshnessScore(ch: MonitoringItem): number {
-  // 1) timestamp 우선
   if (ch.timestamp) {
     const ts = Date.parse(ch.timestamp);
     if (!Number.isNaN(ts)) return ts;
   }
 
-  // 2) time
   if (ch.time) {
     const ts = Date.parse(ch.time);
     if (!Number.isNaN(ts)) return ts;
   }
 
-  // 3) id (id 가 클수록 최근이라고 가정)
   if (typeof ch.id === 'number' && Number.isFinite(ch.id)) {
     return ch.id;
   }
 
-  // 4) 다 없으면 가장 오래된 걸로 취급
   return 0;
 }
 
@@ -393,7 +385,6 @@ function normalizeByCoordinate(list: MonitoringItem[]): MonitoringItem[] {
     const xNum = Number(xRaw);
     const yNum = Number(yRaw);
 
-    // 좌표가 없거나 0 이하이면 좌표 중복 체크 없이 그냥 추가
     if (!Number.isFinite(xNum) || !Number.isFinite(yNum) || xNum <= 0 || yNum <= 0) {
       result.push(ch);
       continue;
@@ -407,11 +398,8 @@ function normalizeByCoordinate(list: MonitoringItem[]): MonitoringItem[] {
       const prevScore = getFreshnessScore(prev);
       const currScore = getFreshnessScore(ch);
 
-      // 신선도 높은 쪽만 남기기 (동점이면 새 데이터 우선)
       if (currScore >= prevScore) {
         result[existingIdx] = ch;
-      } else {
-        // 기존이 더 최신이면 그냥 패스
       }
     } else {
       coordIndex.set(key, result.length);
@@ -436,7 +424,7 @@ export default function DashboardCell() {
   const [listRenderToken, setListRenderToken] = useState(0);
   const hasForcedListRenderRef = useRef(false);
 
-  // ✅ (추가) 1분마다 tick 갱신 → "시간 경과로 comm error" 반영용 (기존 기능 영향 없음)
+  // ✅ (유지) 1분마다 tick 갱신 → "시간 경과로 Comm Error 표시 갱신" 반영용
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -444,9 +432,13 @@ export default function DashboardCell() {
     return () => window.clearInterval(t);
   }, []);
 
-  // ✅ (추가) 장비별 마지막 변경 시각 추적 (기존 기능 영향 없음)
-  const lastChangedAtRef = useRef<Record<string, number>>({});
-  const lastSigRef = useRef<Record<string, string>>({});
+  // ✅ (변경) 장비별 "SSE 신호 마지막 수신 시각" 추적
+  // - 특정 장비(eqpid+chamberIndex)에 대한 SSE 업데이트가 5분간 없으면 Comm Error
+  const lastSseAtByGroupRef = useRef<Record<string, number>>({});
+
+  // ✅ (추가) "페이지 로딩 시 1회 초기화" 완료 여부
+  // - LIST 재조회(mutate) 때마다 전체가 같이 리셋되는 문제 방지
+  const commInitDoneRef = useRef(false);
 
   // 🔹 전력량은 최초 1번만 가져오고 이후엔 SSE에서 mutate로만 갱신
   const { data: todayPower, mutate: mutateToday } = useSWR<TodayPower>(
@@ -522,7 +514,7 @@ export default function DashboardCell() {
   // ✅ 장비별 RESET 상태
   const [resetTargets, setResetTargets] = useState<Record<string, ResetMode>>({});
 
-  // ✅ 이전 장비 스냅샷 시그니처 (기존 RESET 해제용)
+  // ✅ 이전 장비 스냅샷 시그니처 (RESET 해제용 유지)
   const lastGroupSignRef = useRef<Record<string, string>>({});
 
   // 2) SSE – DELTA 받아서 items merge, 전력량은 mutate로 재조회
@@ -540,6 +532,23 @@ export default function DashboardCell() {
 
       console.info('[CELL SSE] connecting:', SSE_URL);
       es = new EventSource(SSE_URL);
+
+      // ✅ 장비별 SSE 신호 시각 갱신 유틸
+      // payload로 들어온 MonitoringItem들 기준으로 eqpid+chamberIndex 그룹키를 찍는다.
+      const markSseSignalForGroups = (arr: MonitoringItem[] | null | undefined) => {
+        if (!arr || !arr.length) return;
+        const t = nowMs();
+
+        for (const ch of arr) {
+          const eqpid = (ch.eqpid || ch.title || '').trim();
+          if (!eqpid) continue;
+
+          const chamber = typeof ch.chamberIndex === 'number' && ch.chamberIndex > 0 ? ch.chamberIndex : 1;
+          const gKey = groupKeyOf(eqpid, chamber);
+
+          lastSseAtByGroupRef.current[gKey] = t;
+        }
+      };
 
       es.onopen = () => {
         console.info('[CELL SSE] connected:', SSE_URL);
@@ -563,6 +572,7 @@ export default function DashboardCell() {
         const trimmed = dataText.trim();
 
         // JSON 이 아닌 단순 문자열 이벤트(alarm-updated:CELL 등)
+        // ※ "특정 장비" 식별이 불가하므로 lastSseAtByGroupRef는 갱신하지 않는다.
         if (!isJsonString(trimmed)) {
           console.debug('[CELL SSE] non-JSON message:', trimmed);
 
@@ -580,7 +590,9 @@ export default function DashboardCell() {
 
           // 1) 배열 형태 전체 리스트
           if (Array.isArray(payload)) {
-            setItems(payload as MonitoringItem[]);
+            const full = payload as MonitoringItem[];
+            markSseSignalForGroups(full); // ✅ 장비별 SSE 신호 갱신
+            setItems(full);
             mutateToday(); // ✅ here도 today만
             return;
           }
@@ -601,6 +613,8 @@ export default function DashboardCell() {
             }
 
             const deltaItems = payload.items as MonitoringItem[];
+
+            markSseSignalForGroups(deltaItems); // ✅ 장비별 SSE 신호 갱신
 
             setItems((prev) => {
               if (!prev || !prev.length) {
@@ -666,7 +680,7 @@ export default function DashboardCell() {
       if (es) es.close();
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [mutate, mutateToday]); // ✅ mutateMonth는 여기서 안 건드림
+  }, [mutate, mutateToday]);
 
   // 3) 검색
   const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
@@ -677,7 +691,7 @@ export default function DashboardCell() {
   const equipGroups: EquipGroup[] = useMemo(() => {
     if (!effectiveData.length) return [];
 
-    // ✅ PACK 처럼 좌표 기준 최신 데이터만 남기기
+    // ✅ PACK 처럼 좌표 기준 최신 데이터만 남기기(현재는 미사용 유지)
     // const src = normalizeByCoordinate(effectiveData);
     const src = effectiveData;
     const map = new Map<string, EquipGroup>();
@@ -709,6 +723,33 @@ export default function DashboardCell() {
     });
   }, [effectiveData]);
 
+  // ✅ (추가) SSE가 한번도 안온 장비도 "페이지 로딩 때 1회" 초기화
+  // - 이후 LIST 재조회(mutate 등)로 전체가 같이 리셋되는 문제 방지
+  // - 단, 늦게 등장한 "새 장비"는 누락 방지 위해 최초값만 채움
+  useEffect(() => {
+    if (!equipGroups.length) return;
+
+    const t = nowMs();
+
+    // 1) 최초 1회: 전체 장비 초기화
+    if (!commInitDoneRef.current) {
+      for (const g of equipGroups) {
+        const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
+        lastSseAtByGroupRef.current[gKey] = t;
+      }
+      commInitDoneRef.current = true;
+      return;
+    }
+
+    // 2) 이후: 새로 나타난 장비만 초기값 채우기 (기존 값 덮어쓰기 금지)
+    for (const g of equipGroups) {
+      const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
+      if (!lastSseAtByGroupRef.current[gKey]) {
+        lastSseAtByGroupRef.current[gKey] = t;
+      }
+    }
+  }, [equipGroups]);
+
   // ✅ equipGroups 변경 시, 값이 실제로 바뀐 장비만 RESET 해제 (기존 그대로)
   useEffect(() => {
     if (!equipGroups.length) return;
@@ -738,37 +779,6 @@ export default function DashboardCell() {
     }
 
     lastGroupSignRef.current = newSigns;
-  }, [equipGroups]);
-
-  // ✅ (추가) Comm Error용 "마지막 변경 시각" 추적
-  // - 기존 기능(RESET해제 등)과 분리된 ref라 영향 없음
-  useEffect(() => {
-    if (!equipGroups.length) return;
-
-    const now = nowMs();
-
-    for (const g of equipGroups) {
-      const gKey = groupKeyOf(g.eqpid, g.chamberIndex);
-      const sig = buildGroupSignature(g);
-
-      const prevSig = lastSigRef.current[gKey];
-      if (!prevSig) {
-        // 최초 진입: 지금 시각으로 초기화
-        lastSigRef.current[gKey] = sig;
-        lastChangedAtRef.current[gKey] = now;
-        continue;
-      }
-
-      if (prevSig !== sig) {
-        // 변화 감지: 시그니처 갱신 + 변경 시각 갱신
-        lastSigRef.current[gKey] = sig;
-        lastChangedAtRef.current[gKey] = now;
-      } else {
-        // 변화 없음: lastChangedAtRef는 그대로 유지
-        // (없을 경우만 방어적으로 채움)
-        if (!lastChangedAtRef.current[gKey]) lastChangedAtRef.current[gKey] = now;
-      }
-    }
   }, [equipGroups]);
 
   // ===============================
@@ -866,12 +876,8 @@ export default function DashboardCell() {
       let icon: ListItem['icon'] = iconFromChamberStatus(chamberStatusRaw);
       let operation: ListItem['operation'] = 'available';
 
-      console.log('status => totalChannels' + totalChannels);
-      console.log('status => allComplete' + allComplete);
-
       if (anyAlarm || anyStop) {
         operation = 'stop';
-        //icon = 'error';
 
         if (anyAlarm && groupHasAlarms) {
           shutdown = true;
@@ -880,7 +886,6 @@ export default function DashboardCell() {
         }
       } else if (anyRun) {
         operation = 'ongoing';
-       // icon = 'success';
 
         if (anyComplete) {
           shutdown = true;
@@ -889,16 +894,13 @@ export default function DashboardCell() {
         }
       } else if (allComplete) {
         operation = 'completion';
-       // icon = 'stay';
         shutdown = false;
       } else if (anyReady && !anyRun && !anyAlarm && !anyComplete && !anyStop) {
         operation = 'available';
         ready = false;
-      //  icon = 'stay';
         shutdown = false;
       } else {
         operation = 'available';
-     //   icon = 'success';
         shutdown = false;
       }
 
@@ -909,10 +911,9 @@ export default function DashboardCell() {
       let finalShutdown = shutdown;
       let finalIcon: ListItem['icon'] = icon;
 
-      // ✅ (추가) Comm Error 판단 (5분 이상 변화 없음)
-      // - 기존 카운트(ch1/ch2/ch3), memoText, 검색 등 "변경 없음"
-      const lastChangedAt = lastChangedAtRef.current[gKey] ?? 0;
-      const isCommError = lastChangedAt > 0 && nowMs() - lastChangedAt >= COMM_ERROR_MS;
+      // ✅ (변경) Comm Error 판단: "값 변경"이 아니라 "해당 장비의 SSE 업데이트 수신" 기준
+      const lastSseAt = lastSseAtByGroupRef.current[gKey] ?? 0;
+      const isCommError = lastSseAt > 0 && nowMs() - lastSseAt >= COMM_ERROR_MS;
 
       // ✅ Comm Error가 되면 "표시만" stop/error/shutdown으로 강제
       // (단, resetMode가 clear-blink로 shutdown 해제하는 기존 기능은 그대로 존중)
@@ -922,7 +923,7 @@ export default function DashboardCell() {
         finalIcon = 'error';
       }
 
-      // ✅ 기존 RESET 동작 유지 (기존 로직 그대로)
+      // ✅ 기존 RESET 동작 유지
       if (resetMode === 'clear-blink' && finalShutdown) {
         finalShutdown = false;
       }
@@ -987,13 +988,25 @@ export default function DashboardCell() {
         channelIndex: memoChannelIndex,
       };
     });
-    // ✅ tick 추가: 시간 경과로 comm error 표시 갱신 (기존 기능 영향 없음)
+    // ✅ tick 추가: 시간 경과로 comm error 표시 갱신
   }, [equipGroups, searchKeywords, resetTargets, tick]);
 
   // ===============================
   // 6) 상단 차트용 집계 + 전력량 스케일링(W/kW/MW)
   // ===============================
+  // ===============================
+  // 6) 상단 차트용 집계 + 전력량 스케일링(W/kW/MW)
+  // ===============================
   const { runningChart, opDistChart, status4Chart, todayChart, monthChart, stepChart } = useMemo(() => {
+    // ---------------------------
+    // (0) COMM ERROR 판정 유틸 (차트에서도 동일 적용)
+    // ---------------------------
+    const isGroupCommError = (eqpid: string, chamberIndex: number) => {
+      const gKey = groupKeyOf(eqpid, chamberIndex);
+      const lastSseAt = lastSseAtByGroupRef.current[gKey] ?? 0;
+      return lastSseAt > 0 && nowMs() - lastSseAt >= COMM_ERROR_MS;
+    };
+
     // ---------------------------
     // (1) 장비 가동률 / 상태
     // ---------------------------
@@ -1006,18 +1019,13 @@ export default function DashboardCell() {
       const totalEquip = equipGroups.length;
       let runningEquip = 0;
 
-      for (const g of equipGroups) {
-        const modes = g.channels.map(getChannelMode);
-        const anyAlarm = modes.includes('alarm');
-        const anyRun = modes.includes('run');
-        const allComplete = modes.length > 0 && modes.every((m) => m === 'complete');
-
-        if (!anyAlarm && anyRun && !allComplete) {
-          runningEquip++;
-        }
-      }
-
-      const allChannels = equipGroups.flatMap((g) => g.channels);
+      // 🔹 상태 4분류 분포 (COMM ERROR 반영)
+      const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
+        대기: 0,
+        진행중: 0,
+        일시정지: 0,
+        알람: 0,
+      };
 
       // 🔹 운전모드 분포
       const opBuckets: Record<string, number> = {
@@ -1029,98 +1037,93 @@ export default function DashboardCell() {
         Chargemap: 0,
       };
 
-      for (const ch of allChannels) {
-        const op = (ch.operation || '').toLowerCase();
-        let key: keyof typeof opBuckets | null = null;
+      // 🔹 stepName 분포 → 상위 6개
+      const stepBuckets: Record<string, number> = {};
 
-        switch (op) {
-          case 'charge':
-            key = 'Charge';
-            break;
-          case 'discharge':
-            key = 'Discharge';
-            break;
-          case 'rest':
-            key = 'Rest';
-            break;
-          case 'rest-iso':
-            key = 'Rest(ISO)';
-            break;
-          case 'pattern':
-            key = 'Pattern';
-            break;
-          case 'chargemap':
-            key = 'Chargemap';
-            break;
-          default:
-            key = null;
+      for (const g of equipGroups) {
+        const commErr = isGroupCommError(g.eqpid, g.chamberIndex);
+
+        // ✅ COMM ERROR면 해당 “장비”는 running으로 절대 잡히면 안됨
+        if (!commErr) {
+          const modes = g.channels.map(getChannelMode);
+          const anyAlarm = modes.includes('alarm');
+          const anyRun = modes.includes('run');
+          const allComplete = modes.length > 0 && modes.every((m) => m === 'complete');
+
+          if (!anyAlarm && anyRun && !allComplete) {
+            runningEquip++;
+          }
         }
 
-        if (key) {
-          opBuckets[key] += 1;
+        // ✅ 채널 단위 집계도 COMM ERROR면 알람으로 강제 카운트
+        for (const ch of g.channels) {
+          // (a) 운전모드 분포 (기존 로직 유지)
+          const op = (ch.operation || '').toLowerCase();
+          let key: keyof typeof opBuckets | null = null;
+
+          switch (op) {
+            case 'charge':
+              key = 'Charge';
+              break;
+            case 'discharge':
+              key = 'Discharge';
+              break;
+            case 'rest':
+              key = 'Rest';
+              break;
+            case 'rest-iso':
+              key = 'Rest(ISO)';
+              break;
+            case 'pattern':
+              key = 'Pattern';
+              break;
+            case 'chargemap':
+              key = 'Chargemap';
+              break;
+            default:
+              key = null;
+          }
+          if (key) opBuckets[key] += 1;
+
+          // (b) 상태 4분류
+          if (commErr) {
+            statusBuckets['알람'] += 1; // ✅ COMM ERROR는 차트에서 알람 처리
+          } else {
+            const mode = getChannelMode(ch);
+            switch (mode) {
+              case 'run':
+                statusBuckets['진행중'] += 1;
+                break;
+              case 'stop':
+                statusBuckets['일시정지'] += 1;
+                break;
+              case 'alarm':
+                statusBuckets['알람'] += 1;
+                break;
+              case 'ready':
+              case 'complete':
+              case 'idle':
+              default:
+                statusBuckets['대기'] += 1;
+                break;
+            }
+          }
+
+          // (c) stepName 분포
+          const raw = (ch.stepName ?? ch.step ?? '').trim();
+          if (raw) {
+            stepBuckets[raw] = (stepBuckets[raw] ?? 0) + 1;
+          }
         }
       }
-
-      opDistChart = Object.entries(opBuckets).map(([name, value]) => ({
-        name,
-        value,
-      }));
-
-      // 🔹 상태 4분류 분포
-      const statusBuckets: Record<'대기' | '진행중' | '일시정지' | '알람', number> = {
-        대기: 0,
-        진행중: 0,
-        일시정지: 0,
-        알람: 0,
-      };
-
-      for (const ch of allChannels) {
-        const mode = getChannelMode(ch);
-        switch (mode) {
-          case 'run':
-            statusBuckets['진행중'] += 1;
-            break;
-          case 'stop':
-            statusBuckets['일시정지'] += 1;
-            break;
-          case 'alarm':
-            statusBuckets['알람'] += 1;
-            break;
-          case 'ready':
-          case 'complete':
-          case 'idle':
-          default:
-            statusBuckets['대기'] += 1;
-            break;
-        }
-      }
-
-      status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({
-        name,
-        value,
-      }));
 
       runningChart = { total: totalEquip, running: runningEquip };
 
-      // 🔹 stepName 분포 → 상위 6개 (✅ 기존 그대로)
-      const stepBuckets: Record<string, number> = {};
-
-      for (const ch of allChannels) {
-        // stepName 우선, 없으면 step 사용 (fallback)
-        const raw = (ch.stepName ?? ch.step ?? '').trim();
-        if (!raw) continue;
-
-        const name = raw;
-        stepBuckets[name] = (stepBuckets[name] ?? 0) + 1;
-      }
+      opDistChart = Object.entries(opBuckets).map(([name, value]) => ({ name, value }));
+      status4Chart = Object.entries(statusBuckets).map(([name, value]) => ({ name, value }));
 
       const sortedSteps = Object.entries(stepBuckets).sort((a, b) => b[1] - a[1]);
-
-      const TOP_N = 6;
-      stepChart = sortedSteps.slice(0, TOP_N).map(([name, value]) => ({
-        name,
-        value,
-      }));
+      stepChart = sortedSteps.slice(0, 6).map(([name, value]) => ({ name, value }));
     }
 
     // ---------------------------
@@ -1128,22 +1131,13 @@ export default function DashboardCell() {
     // ---------------------------
     const todayChargeRaw = todayPower?.charge ?? 0;
     const todayDisRaw = Math.abs(todayPower?.discharge ?? 0);
-
     const maxTodayAbs = Math.max(Math.abs(todayChargeRaw), Math.abs(todayDisRaw));
-
     const { unit: todayUnit } = scalePower(maxTodayAbs || 0);
-
     const todayDivisor = todayUnit === 'MWh' ? 1_000_000 : todayUnit === 'kWh' ? 1_000 : 1;
 
     const todayData = [
-      {
-        name: '방전',
-        value: Number((todayDisRaw / todayDivisor).toFixed(1)),
-      },
-      {
-        name: '충전',
-        value: Number((todayChargeRaw / todayDivisor).toFixed(1)),
-      },
+      { name: '방전', value: Number((todayDisRaw / todayDivisor).toFixed(1)) },
+      { name: '충전', value: Number((todayChargeRaw / todayDivisor).toFixed(1)) },
     ];
 
     // ---------------------------
@@ -1172,17 +1166,11 @@ export default function DashboardCell() {
       runningChart,
       opDistChart,
       status4Chart,
-      todayChart: {
-        data: todayData,
-        unit: todayUnit as PowerUnit,
-      },
-      monthChart: {
-        data: monthData,
-        unit: monthUnit as PowerUnit,
-      },
+      todayChart: { data: todayData, unit: todayUnit as PowerUnit },
+      monthChart: { data: monthData, unit: monthUnit as PowerUnit },
       stepChart,
     };
-  }, [equipGroups, todayPower, monthPower]);
+  }, [equipGroups, todayPower, monthPower, tick]); // ✅ tick 유지 (시간 경과 반영)
 
   // 최초 1회 List 강제 리렌더
   useEffect(() => {
@@ -1394,3 +1382,4 @@ export default function DashboardCell() {
     </>
   );
 }
+

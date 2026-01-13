@@ -107,6 +107,8 @@
             border: 1px solid #ddd;
             font-size: 1.4rem;
             dl {
+              @include flexArea($direction: column, $justify: flex-start, $align: stretch);
+              height: 100%;
               dt {
                 @include flexArea($justify: space-between);
                 > strong {
@@ -136,6 +138,7 @@
                 }
               }
               dd {
+                height: 100%;
                 color: #666;
                 margin-top: 0.6rem;
                 background-color: #fff;

@@ -387,16 +387,16 @@
             ul {
               @include flexArea($gap: 1rem);
               position: relative;
-              padding-left: 3rem;
-              &:before {
-                content: 'CH';
-                position: absolute;
-                top: 0.3rem;
-                left: -0rem;
-                font-size: 2rem;
-                font-weight: 400;
-                color: #666;
-              }
+              // padding-left: 3rem;
+              // &:before {
+              //   content: 'CH';
+              //   position: absolute;
+              //   top: 0.3rem;
+              //   left: -0rem;
+              //   font-size: 2rem;
+              //   font-weight: 400;
+              //   color: #666;
+              // }
               li {
                 position: relative;
                 font-size: 2.4rem;
@@ -474,8 +474,8 @@
 
           &[data-operation='ongoing'] {
             .inner {
-              border-width: 0.3rem;
-              background-color: #e9f6e9;
+              // border-width: 0.3rem;
+              background-color: #fbfffb;
               border-color: var(--state-ongoing);
               box-shadow: 0 0.4rem 0.8rem rgba(69, 209, 65, 0.2);
             }
@@ -531,12 +531,12 @@
               &::after {
                 content: '';
                 position: absolute;
-                width: calc(100% + 0.8rem);
-                height: calc(100% + 0.8rem);
-                border-width: 0.3rem;
-                border-radius: 0.6rem;
-                left: -0.4rem;
-                top: -0.4rem;
+                width: calc(100% + 1rem);
+                height: calc(100% + 1rem);
+                border-width: 0.5rem;
+                border-radius: 1rem;
+                left: -0.5rem;
+                top: -0.5rem;
                 animation: blinkShutdown 0.5s infinite alternate;
                 pointer-events: none;
               }

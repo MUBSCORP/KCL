@@ -4,9 +4,9 @@ import { Button } from '@mui/material';
 
 export default function TopStateCenterList() {
   const items = [
-    { time: '06시 11분 21초', desc: '1F-001A 온도 임계 임박', type: 'warning' },
+    { time: '06시 11분 21초', desc: 'B003-1 (EquipID+channelIndex) 에서 스케쥴 파일에서 오류가 발생했습니다.', type: 'warning' },
     { time: '06시 11분 21초', desc: '시스템 백업 완료', type: '' },
-    { time: '06시 11분 21초', desc: '1F-001B 속도 비정상 패턴', type: 'danger' },
+    { time: '06시 11분 21초', desc: '2000A-5A (EquipID+channelName) 에서 스케쥴 파일에서 오류가 발생했습니다.', type: 'danger' },
   ];
 
   return (
@@ -15,7 +15,9 @@ export default function TopStateCenterList() {
         {items.map((item, index) => (
           <li key={index} className={item.type === 'warning' ? 'warning' : item.type === 'danger' ? 'danger' : ''}>
             <Button className="customBtn">
-              <span className="desc">{item.desc}</span>
+              <span className="desc" style={{ maxWidth: '50rem' }}>
+                {item.desc}
+              </span>
               <span className="time">{item.time}</span>
             </Button>
           </li>

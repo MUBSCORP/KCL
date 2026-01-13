@@ -2,7 +2,7 @@
 
 // topState
 import ChartRunning from '@/app/uiux/components/modules/topState/ChartRunning';
-import ChartState from '@/app/uiux/components/modules/topState/ChartState';
+// import ChartState from '@/app/uiux/components/modules/topState/ChartState';
 import ChartState2 from '@/app/uiux/components/modules/topState/ChartState2';
 import ChartOperation from '@/app/uiux/components/modules/topState/ChartOperation';
 import ChartOperation2 from '@/app/uiux/components/modules/topState/ChartOperation2';
@@ -513,7 +513,7 @@ export default function DashboardPack() {
         <h2 className="ir">상단 기능 화면</h2>
         <div className="left">
           <ChartRunning title="장비가동률" total={chartData.total} running={chartData.running} />
-          <ChartState title="장비현황" data={chartData2} />
+          {/* <ChartState title="장비현황" data={chartData2} /> */}
           <ChartOperation title="장비가동현황" data={chartData3} />
           <Button className="btnZoom" onClick={() => setIsZoomOpen(true)}>
             확대보기

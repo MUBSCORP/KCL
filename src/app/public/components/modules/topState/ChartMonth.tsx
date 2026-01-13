@@ -7,7 +7,7 @@ import type { PowerUnit } from '@/utils/powerUnit';
 interface ChartProps {
   title: string;
   data: { name: string; charge: number; discharge: number }[];
-  unit?: PowerUnit; // 'W' | 'kW' | 'MW'
+  unit?: PowerUnit; // 'Wh' | 'kWh' | 'MWh'
 }
 
 export default function ChartMonth({ title, data, unit }: ChartProps) {
@@ -19,15 +19,45 @@ export default function ChartMonth({ title, data, unit }: ChartProps) {
     const chart = echarts.init(chartRef.current);
     const displayUnit: PowerUnit = unit ?? 'Wh';
 
+    // =========================================================
+    // ✅ Y축 "그리드 라인 5줄" 고정
+    // - splitNumber = 5  → 내부 가로선 5줄
+    // - interval = (max - min) / 5
+    // =========================================================
+    const maxVal = Math.max(
+      0,
+      ...data.flatMap((d) => [Number(d.charge) || 0, Number(d.discharge) || 0]),
+    );
+
+    // 보기 좋은 max로 올림(1/2/5 계열)
+    const niceCeil = (v: number) => {
+      if (v <= 0) return 0;
+      const exp = Math.floor(Math.log10(v));
+      const base = Math.pow(10, exp);
+      const f = v / base;
+      const nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+      return nf * base;
+    };
+
+    const yMin = 0;
+
+    // max가 0이면 5로 잡으면 interval=1 → 0~5
+    // (splitNumber=5라 내부선 5줄)
+    const rawMax = maxVal === 0 ? 5 : niceCeil(maxVal);
+
+    // splitNumber(=5)에 딱 맞게 max를 interval*5로 맞추기 위해 max 재정의
+    const splits = 5;
+    const interval = rawMax === 0 ? 1 : rawMax / splits;
+    const yMax = yMin + interval * splits;
+
     const option: echarts.EChartsOption = {
       animation: false,
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
-        textStyle: { fontSize: 10 }, // 🔹 UI/UX: 툴팁 폰트 크기
+        textStyle: { fontSize: 10 },
         formatter: (params: any) => {
           const list = Array.isArray(params) ? params : [params];
-
           let result = `<strong style="color:#000;font-size:1.1rem;font-weight:500">${list[0]?.name ?? ''}월</strong><br/>`;
           list.forEach((item: any) => {
             result += `
@@ -52,7 +82,16 @@ export default function ChartMonth({ title, data, unit }: ChartProps) {
       },
       yAxis: {
         type: 'value',
-        name: `(${displayUnit})`, // 🔹 단위 표시
+        name: `(${displayUnit})`,
+        min: yMin,
+        max: yMax,
+        splitNumber: splits,     // ✅ 내부 가로선 5줄
+        interval: interval,      // ✅ 눈금 간격 고정
+        splitLine: { show: true }, // (명시적으로 켜기)
+        axisLabel: {
+          showMinLabel: true,
+          showMaxLabel: true,
+        },
       },
       series: [
         {
@@ -81,20 +120,16 @@ export default function ChartMonth({ title, data, unit }: ChartProps) {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [data, unit]); // 🔹 unit 변경 시에도 다시 렌더
+  }, [data, unit]);
 
   return (
     <div className="chartCont">
-      <h3 className="tit" style={{ marginBottom: '1.7rem'}}>
+      <h3 className="tit" style={{ marginBottom: '1.7rem' }}>
         {title}
         {unit && <span style={{ marginLeft: 4, fontSize: '0.8rem' }}>({unit})</span>}
       </h3>
-      {/* 🔹 UI/UX: 높이 10.8rem */}
-      <div
-        className="chartWrap"
-        ref={chartRef}
-        style={{ width: '23.5rem', height: '10.8rem' }}
-      />
+
+      <div className="chartWrap" ref={chartRef} style={{ width: '23.5rem', height: '10.8rem' }} />
     </div>
   );
 }
